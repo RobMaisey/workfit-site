@@ -1,0 +1,34 @@
+<footer class="site-footer">
+  <div class="container footer-inner">
+
+    <div class="footer-col footer-brand">
+      <img src="{{ '/assets/images/logo.jpg' | relative_url }}" alt="WorkFit logo" class="footer-logo">
+      <p class="footer-tagline">{{ site.tagline }}</p>
+    </div>
+
+    <div class="footer-col">
+      <h3>Explore</h3>
+      <ul class="footer-links">
+        {% for item in site.nav %}
+        <li><a href="{{ item.url | relative_url }}">{{ item.title }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h3>Get in touch</h3>
+      <ul class="footer-links">
+        <li><a href="tel:{{ site.phone_link }}">{{ site.phone_display }}</a></li>
+        <li><a href="mailto:{{ site.email }}">{{ site.email }}</a></li>
+      </ul>
+      <a class="btn btn-book" href="{{ site.booking_url }}" target="_blank" rel="noopener">Book a Meeting</a>
+    </div>
+
+  </div>
+
+  <div class="footer-bottom">
+    <div class="container">
+      <p>&copy; {{ 'now' | date: "%Y" }} WorkFit · Rob Maisey. All rights reserved.</p>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,22 @@
+# Generated preview output (rebuilt automatically — not committed)
+_site/
+.jekyll-cache/
+.jekyll-metadata
+
+# Local Ruby gem folder, if used
+vendor/
+.bundle/
+
+# OS/editor noise
+Thumbs.db
+.DS_Store
+
+# Local-only build lockfile
+Gemfile.lock
+
+# Private working notes — kept local, NEVER pushed to the public repo
+CLAUDE.md
+knowledge-base/
+
+# Claude Code local harness settings (local only)
+.claude/

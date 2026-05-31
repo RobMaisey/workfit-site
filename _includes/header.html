@@ -1,0 +1,25 @@
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="{{ '/' | relative_url }}">
+      <img src="{{ '/assets/images/logo.jpg' | relative_url }}" alt="WorkFit logo" class="brand-logo">
+      <span class="brand-text">WorkFit <small>Workplace Mental Health</small></span>
+    </a>
+
+    <!-- Mobile menu toggle (pure CSS, no JavaScript) -->
+    <input type="checkbox" id="nav-toggle" class="nav-toggle" hidden>
+    <label for="nav-toggle" class="nav-toggle-label" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </label>
+
+    <nav class="site-nav" aria-label="Main navigation">
+      <ul>
+        {% for item in site.nav %}
+        <li>
+          <a href="{{ item.url | relative_url }}"{% if page.url == item.url %} class="active" aria-current="page"{% endif %}>{{ item.title }}</a>
+        </li>
+        {% endfor %}
+      </ul>
+      <a class="btn btn-book" href="{{ site.booking_url }}" target="_blank" rel="noopener">Book a Meeting</a>
+    </nav>
+  </div>
+</header>

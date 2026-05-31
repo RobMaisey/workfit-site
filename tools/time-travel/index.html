@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkFit Tools: Time Travel</title>
+<meta name="description" content="An interactive session tool mapping how the brain processes past, present, and future. By Rob Maisey, WorkFit.">
+<meta property="og:title" content="WorkFit Tools: Time Travel">
+<meta property="og:description" content="An interactive session tool mapping how the brain processes past, present, and future.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.sharezen.ca/tools/time-travel/">
+<meta name="author" content="Rob Maisey, ShareZen Consulting">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0e0e10; --surface: #18181b; --surface-hover: #1f1f23; --border: #303038;
+  --text-primary: #f2f2f4; --text-secondary: #c8c8d0; --text-tertiary: #7a7a88;
+  --past: #c0b4ff; --past-bg: rgba(192,180,255,0.20); --past-border: rgba(192,180,255,0.45);
+  --present: #ff7472; --present-bg: rgba(255,116,114,0.20); --present-border: rgba(255,116,114,0.45);
+  --future: #3cdca8; --future-bg: rgba(60,220,168,0.20); --future-border: rgba(60,220,168,0.45);
+  --accent: #ff7472;
+}
+
+html, body { background: var(--bg); color: var(--text-primary); font-family: 'DM Sans', sans-serif;
+  overflow: hidden; height: 100%; width: 100%; user-select: none; -webkit-user-select: none; cursor: default; }
+
+#index-screen { position: fixed; inset: 0; background: var(--bg); z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px; transition: opacity 0.4s ease, transform 0.4s ease; }
+#index-screen.hidden { opacity: 0; transform: scale(0.96); pointer-events: none; }
+.index-title { font-size: clamp(13px,2vw,16px); font-weight: 600; letter-spacing: 4px;
+  color: var(--text-tertiary); margin-bottom: 40px; text-transform: uppercase; }
+.index-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,300px));
+  gap: 16px; max-width: 960px; width: 100%; justify-content: center; }
+.index-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 28px 24px; cursor: pointer; transition: all 0.25s ease; position: relative; overflow: hidden; }
+.index-card:hover { background: var(--surface-hover); border-color: var(--accent); transform: translateY(-2px); }
+.index-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background: var(--accent); opacity:0; transition: opacity 0.25s; }
+.index-card:hover::before { opacity:1; }
+.index-card-number { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-tertiary); margin-bottom:12px; letter-spacing:1px; }
+.index-card-title { font-size:20px; font-weight:600; color:var(--text-primary); margin-bottom:6px; }
+.index-card-sub { font-size:14px; color:var(--text-secondary); }
+.index-card-count { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-tertiary); margin-top:16px; }
+
+#presentation { position: fixed; inset: 0; display: none; }
+#presentation.active { display: block; }
+.slide-track { display: flex; height: 100vh; transition: transform 0.45s cubic-bezier(0.25,0.1,0.25,1); }
+.slide { min-width: 100vw; height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: clamp(16px,3vw,32px) clamp(16px,4vw,48px) 80px; position: relative; }
+
+.slide-header { text-align: center; margin-bottom: clamp(16px,2.5vh,28px);
+  opacity:0; transform:translateY(10px); transition: all 0.5s ease; }
+.slide-header.visible { opacity:1; transform:translateY(0); }
+.slide-number { font-family:'JetBrains Mono',monospace; font-size:clamp(11px,1.5vw,14px);
+  color:var(--text-tertiary); letter-spacing:2px; margin-bottom:4px; }
+.slide-title { font-size:clamp(22px,4vw,32px); font-weight:700; letter-spacing:3px; color:var(--text-primary); }
+.slide-subtitle { font-size:clamp(13px,1.8vw,16px); color:var(--text-secondary); margin-top:4px; }
+.slide-tagline { font-size:clamp(12px,1.6vw,15px); font-style:italic; color:var(--text-tertiary); margin-top:8px; letter-spacing:0.3px; }
+
+/* DIRECTION ROW */
+.direction-row { display:grid; grid-template-columns:clamp(90px,15vw,180px) 1fr 1fr 1fr;
+  gap:clamp(4px,1vw,8px); margin-bottom:clamp(6px,1.5vh,12px);
+  opacity:0; transform:translateY(8px); transition: all 0.4s ease; }
+.direction-row.visible { opacity:1; transform:translateY(0); }
+.direction-label { font-family:'JetBrains Mono',monospace; font-size:clamp(9px,1.2vw,12px);
+  letter-spacing:1px; color:var(--text-tertiary); display:flex; align-items:center; gap:6px; }
+.direction-label.left { justify-content:flex-end; }
+.direction-label.right { justify-content:flex-start; }
+.arrow-line { flex:1; height:1px; background:var(--text-tertiary); max-width:60px; }
+
+/* GRID TABLE */
+.grid-table { width:100%; max-width:1100px; flex:1; display:flex; flex-direction:column; justify-content:center; }
+.col-headers { display:grid; grid-template-columns:clamp(90px,15vw,180px) 1fr 1fr 1fr;
+  gap:clamp(4px,1vw,8px); margin-bottom:clamp(4px,0.8vh,8px);
+  opacity:0; transform:translateY(8px); transition: all 0.4s ease; }
+.col-headers.visible { opacity:1; transform:translateY(0); }
+.col-header { padding:clamp(10px,1.5vh,16px) clamp(8px,1vw,16px); border-radius:6px;
+  font-size:clamp(12px,1.6vw,16px); font-weight:700; letter-spacing:clamp(1px,0.2vw,2px); text-align:center; }
+.col-header.theme { background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-secondary); }
+.col-header.past { background:var(--past-bg); border:1px solid var(--past-border); color:var(--past); box-shadow:0 2px 14px rgba(192,180,255,0.14); }
+.col-header.present { background:var(--present-bg); border:1px solid var(--present-border); color:var(--present); box-shadow:0 2px 14px rgba(255,116,114,0.14); }
+.col-header.future { background:var(--future-bg); border:1px solid var(--future-border); color:var(--future); box-shadow:0 2px 14px rgba(60,220,168,0.14); }
+
+.data-row { display:grid; grid-template-columns:clamp(90px,15vw,180px) 1fr 1fr 1fr;
+  gap:clamp(4px,1vw,8px); margin-bottom:clamp(3px,0.6vh,6px);
+  opacity:0; transform:translateY(12px); transition: all 0.45s ease; }
+.data-row.visible { opacity:1; transform:translateY(0); }
+.cell { padding:clamp(10px,1.5vh,18px) clamp(6px,1vw,16px); border-radius:5px;
+  font-size:clamp(13px,1.8vw,18px); font-weight:600; text-align:center; transition: background 0.3s ease; }
+.cell.theme { background:rgba(255,255,255,0.04); color:var(--text-secondary); font-weight:600;
+  font-size:clamp(11px,1.3vw,14px); letter-spacing:0.5px; }
+.cell.past { background:var(--past-bg); color:var(--past); }
+.cell.present { background:var(--present-bg); color:var(--present); }
+.cell.future { background:var(--future-bg); color:var(--future); }
+.cell.future.bold { font-weight:700; }
+
+.footer-row { display:grid; grid-template-columns:clamp(90px,15vw,180px) 1fr 1fr 1fr;
+  gap:clamp(4px,1vw,8px); margin-top:clamp(12px,2vh,20px);
+  opacity:0; transform:translateY(8px); transition: all 0.4s ease; }
+.footer-row.visible { opacity:1; transform:translateY(0); }
+.footer-cell { font-family:'JetBrains Mono',monospace; font-size:clamp(9px,1.2vw,13px);
+  font-weight:600; letter-spacing:1px; text-align:center; padding:6px; }
+.footer-cell.no-control { color:var(--text-tertiary); }
+.footer-cell.see-index { color:var(--present); opacity:0.7; }
+
+/* MOBILE */
+@media (max-width:600px) {
+  .direction-row { display:none; }
+  .col-headers { grid-template-columns:1fr 1fr 1fr; gap:4px; }
+  .col-header.theme { display:none; }
+  .data-row { display:flex; flex-direction:column; gap:0; margin-bottom:10px;
+    border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .cell.theme { background:rgba(255,255,255,0.05); font-size:11px; letter-spacing:1.5px;
+    padding:8px 12px; text-align:left; border-radius:0; border-bottom:1px solid var(--border); }
+  .cell.past,.cell.present,.cell.future { display:flex; align-items:center; gap:10px;
+    padding:12px 16px; border-radius:0; font-size:15px; text-align:left; }
+  .cell.past::before { content:'PAST'; font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1px; opacity:0.6; min-width:44px; }
+  .cell.present::before { content:'NOW'; font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1px; opacity:0.6; min-width:44px; }
+  .cell.future::before { content:'FUTURE'; font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1px; opacity:0.6; min-width:44px; }
+  .footer-row { grid-template-columns:1fr 1fr; margin-top:8px; }
+  .footer-row > :first-child { display:none; }
+  .footer-cell { font-size:9px; }
+}
+
+/* INDEX CARD SLIDE */
+.index-slide-content { max-width:540px; width:100%; }
+.index-headline { font-size:clamp(24px,4vw,38px); font-weight:700; letter-spacing:3px;
+  text-align:center; color:var(--text-primary); margin-bottom:8px;
+  opacity:0; transform:translateY(10px); transition: all 0.5s ease; }
+.index-headline.visible { opacity:1; transform:translateY(0); }
+.index-box { margin-top:24px; border:1px solid rgba(255,116,114,0.35); border-radius:8px;
+  padding:clamp(16px,3vw,28px) clamp(12px,2.5vw,24px); background:rgba(255,116,114,0.04); }
+.index-box-header { display:grid; grid-template-columns:1fr 1fr; gap:10px;
+  margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid rgba(255,116,114,0.15);
+  opacity:0; transition: all 0.4s ease; }
+.index-box-header.visible { opacity:1; }
+.index-col-label { font-size:clamp(11px,1.4vw,14px); font-weight:600; letter-spacing:1.5px;
+  color:var(--present); opacity:0.7; text-align:center; }
+.index-pair-row { display:grid; grid-template-columns:1fr 1fr; gap:clamp(6px,1vw,10px);
+  margin-bottom:6px; opacity:0; transform:translateY(8px); transition: all 0.4s ease; }
+.index-pair-row.visible { opacity:1; transform:translateY(0); }
+.index-pair-cell { background:rgba(255,116,114,0.10); border-radius:5px; padding:clamp(10px,1.5vh,16px);
+  text-align:center; font-size:clamp(13px,1.8vw,17px); font-weight:600; color:var(--present); }
+.index-control-label { display:flex; align-items:center; justify-content:center; gap:16px;
+  margin-top:20px; opacity:0; transition: all 0.4s ease; }
+.index-control-label.visible { opacity:1; }
+.index-control-label span { font-size:clamp(12px,1.6vw,16px); font-weight:600; letter-spacing:2px; color:var(--text-secondary); }
+.index-control-line { width:40px; height:1px; background:var(--text-tertiary); }
+.index-footer-note { text-align:center; font-size:clamp(12px,1.4vw,14px); color:var(--text-tertiary); margin-top:20px; line-height:1.6; opacity:0; transition: all 0.4s ease; }
+.index-footer-note.visible { opacity:1; }
+
+/* BRAIN SLIDE */
+.brain-layout { display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; max-width:1100px; flex:1; }
+.brain-views { display:flex; align-items:center; justify-content:center; width:100%; position:relative; gap:24px; }
+.brain-svg-wrap { flex:0 0 clamp(220px,40vw,460px); height:clamp(180px,35vw,380px); }
+.brain-layer { opacity:0; transition: opacity 0.8s ease; }
+.brain-layer.visible { opacity:1; }
+.brain-info-cards { flex:1; display:flex; flex-direction:column; justify-content:center; gap:10px; max-width:380px; min-width:0; }
+.brain-info-card { padding:clamp(12px,1.8vh,18px) clamp(12px,1.5vw,22px); border-radius:8px;
+  background:var(--surface); border:1px solid var(--border);
+  opacity:0; transform:translateX(24px); transition: all 0.6s ease; }
+.brain-info-card.visible { opacity:1; transform:translateX(0); }
+.brain-info-card.c-past { border-left:3px solid var(--past); }
+.brain-info-card.c-present { border-left:3px solid var(--present); }
+.brain-info-card.c-future { border-left:3px solid var(--future); }
+.brain-info-title { font-size:clamp(13px,1.6vw,16px); font-weight:700; letter-spacing:1px; margin-bottom:2px; }
+.brain-info-card.c-past .brain-info-title { color:var(--past); }
+.brain-info-card.c-present .brain-info-title { color:var(--present); }
+.brain-info-card.c-future .brain-info-title { color:var(--future); }
+.brain-info-age { font-family:'JetBrains Mono',monospace; font-size:clamp(9px,1.1vw,11px); color:var(--text-tertiary); margin-bottom:4px; }
+.brain-info-sub { font-size:clamp(12px,1.4vw,14px); font-weight:600; color:var(--text-secondary); margin-bottom:4px; }
+.brain-info-desc { font-size:clamp(11px,1.3vw,14px); color:var(--text-tertiary); line-height:1.5; }
+
+@media (max-width:600px) {
+  .brain-views { flex-direction:column; gap:16px; overflow-y:auto; }
+  .brain-svg-wrap { flex:none; width:100%; height:clamp(160px,50vw,260px); }
+  .brain-info-cards { max-width:100%; width:100%; }
+  .brain-info-card { transform:translateX(0) translateY(16px); }
+  .brain-info-card.visible { transform:translateX(0) translateY(0); }
+}
+
+/* NAV */
+.nav-bar { position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:clamp(10px,2vw,18px); padding:10px clamp(12px,2vw,24px);
+  background:var(--surface); border:1px solid var(--border); border-radius:40px;
+  z-index:50; opacity:0; transition: opacity 0.3s ease; max-width:calc(100vw - 32px); }
+.nav-bar.visible { opacity:1; }
+.nav-dot { width:8px; height:8px; border-radius:50%; background:var(--text-tertiary);
+  cursor:pointer; transition: all 0.25s ease; flex-shrink:0; }
+.nav-dot.active { background:var(--accent); transform:scale(1.3); }
+.nav-btn { font-family:'JetBrains Mono',monospace; font-size:clamp(10px,1.3vw,12px);
+  letter-spacing:1px; color:var(--text-secondary); background:none;
+  border:1px solid var(--border); border-radius:20px; padding:6px clamp(10px,1.5vw,18px);
+  cursor:pointer; transition: all 0.2s ease; white-space:nowrap; }
+.nav-btn:hover { color:var(--text-primary); border-color:var(--text-secondary); }
+.tap-hint { position:fixed; bottom:76px; left:50%; transform:translateX(-50%);
+  font-family:'JetBrains Mono',monospace; font-size:clamp(10px,1.3vw,12px);
+  color:var(--text-tertiary); letter-spacing:1.5px; opacity:0; transition: opacity 0.4s ease; z-index:50; white-space:nowrap; }
+.tap-hint.visible { opacity:1; }
+.brand-footer { position:fixed; bottom:10px; right:16px; font-family:'JetBrains Mono',monospace;
+  font-size:clamp(10px,1.2vw,12px); letter-spacing:1px; color:var(--text-tertiary); z-index:40; display:none; }
+.brand-footer.visible { display:block; }
+.brand-footer a { color:var(--text-tertiary); text-decoration:none; transition: color 0.2s; }
+.brand-footer a:hover { color:var(--text-secondary); }
+</style>
+</head>
+<body>
+<!-- WorkFit site navigation + end CTA (added when this tool was pulled into the main WorkFit site) -->
+<div id="wf-nav">
+  <button id="wf-nav-toggle" type="button" aria-expanded="false" aria-controls="wf-nav-menu">
+    <img src="../../assets/images/logo.jpg" alt="" width="22" height="22">
+    <span>WorkFit site</span>
+    <span id="wf-caret" aria-hidden="true">&#9662;</span>
+  </button>
+  <nav id="wf-nav-menu" aria-label="WorkFit site">
+    <a href="../../">Home</a>
+    <a href="../../workfit/">WorkFit</a>
+    <a href="../../pricing/">Pricing</a>
+    <a href="../../tools/">Tools</a>
+    <a href="../../contact/">Contact</a>
+    <a class="wf-book" href="https://meetings.hubspot.com/rob465" target="_blank" rel="noopener">Book a Meeting</a>
+  </nav>
+</div>
+
+<div id="wf-cta" role="region" aria-label="Next steps">
+  <span class="wf-cta-label">Ready to go further?</span>
+  <a class="wf-cta-ghost" href="../../workfit/">See how WorkFit works</a>
+  <a class="wf-cta-book" href="https://meetings.hubspot.com/rob465" target="_blank" rel="noopener">Book a Meeting</a>
+</div>
+
+<style>
+  #wf-nav { position: fixed; top: 12px; left: 12px; z-index: 1000; font-family: 'DM Sans', system-ui, sans-serif; }
+  #wf-nav-toggle { display:flex; align-items:center; gap:8px; cursor:pointer;
+    background:#0c1340; color:#fff; border:1px solid rgba(255,255,255,0.22);
+    border-radius:30px; padding:7px 14px; font-size:13px; font-weight:700; line-height:1; }
+  #wf-nav-toggle:hover { background:#161d52; }
+  #wf-nav-toggle img { border-radius:50%; display:block; }
+  #wf-caret { color:#f5c400; font-size:11px; }
+  #wf-nav-menu { display:none; flex-direction:column; margin-top:8px; min-width:210px;
+    background:#0c1340; border:1px solid rgba(255,255,255,0.22); border-radius:12px;
+    padding:8px; box-shadow:0 14px 34px rgba(0,0,0,0.5); }
+  #wf-nav.wf-open #wf-nav-menu { display:flex; }
+  #wf-nav-menu a { color:#e9ecff; text-decoration:none; font-size:15px; font-weight:600;
+    padding:10px 12px; border-radius:8px; cursor:pointer; }
+  #wf-nav-menu a:hover { background:rgba(255,255,255,0.10); color:#fff; }
+  #wf-nav-menu a.wf-book { background:#f5c400; color:#0c1340; text-align:center; font-weight:800; margin-top:6px; }
+  #wf-nav-menu a.wf-book:hover { background:#d9ab00; }
+
+  /* End-of-tool CTA: sits in its own band ABOVE the SUMMARY/dots/RESTART bar */
+  #wf-cta { display:none; position:fixed; left:50%; bottom:76px; transform:translateX(-50%);
+    z-index:60; align-items:center; gap:12px; flex-wrap:wrap; justify-content:center;
+    background:rgba(12,19,64,0.94); border:1px solid rgba(255,255,255,0.20); border-radius:40px;
+    padding:8px 12px 8px 18px; max-width:calc(100vw - 32px);
+    font-family:'DM Sans', system-ui, sans-serif; box-shadow:0 14px 34px rgba(0,0,0,0.55); }
+  #wf-cta.wf-show { display:flex; }
+  .wf-cta-label { color:#fff; font-size:14px; font-weight:700; }
+  #wf-cta a { text-decoration:none; font-size:13px; font-weight:700; border-radius:30px; padding:8px 16px; white-space:nowrap; cursor:pointer; }
+  .wf-cta-ghost { color:#fff; border:1px solid rgba(255,255,255,0.45); }
+  .wf-cta-ghost:hover { background:rgba(255,255,255,0.12); }
+  .wf-cta-book { background:#f5c400; color:#0c1340; }
+  .wf-cta-book:hover { background:#d9ab00; }
+
+  /* On the final slide: lift the slide content so the CTA never covers it,
+     and hide the tool's "tap to reveal" hint so nothing stacks on the CTA. */
+  #presentation .slide:last-child { padding-bottom: clamp(150px, 19vh, 180px); }
+  body.wf-final #tap-hint { display:none !important; }
+
+  @media (max-width:600px){
+    .wf-cta-label { width:100%; text-align:center; }
+    #wf-cta { bottom:72px; }
+    #presentation .slide:last-child { padding-bottom: clamp(170px, 26vh, 210px); }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var nav=document.getElementById('wf-nav'), btn=document.getElementById('wf-nav-toggle');
+  if(btn){
+    btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation();
+      var open=nav.classList.toggle('wf-open'); btn.setAttribute('aria-expanded', open?'true':'false'); });
+    document.addEventListener('click', function(e){ if(!nav.contains(e.target)) nav.classList.remove('wf-open'); });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') nav.classList.remove('wf-open'); });
+  }
+
+  // Show the closing CTA only on the FINAL slide of a deck.
+  // The tools mark the current slide by adding .active to its nav dot; the last
+  // slide therefore = the last .nav-dot being .active while #presentation is active.
+  var cta=document.getElementById('wf-cta');
+  var pres=document.getElementById('presentation');
+  var dotsWrap=document.getElementById('nav-dots');
+  function onFinalSlide(){
+    if(!pres || !pres.classList.contains('active')) return false;
+    var dots = dotsWrap ? dotsWrap.querySelectorAll('.nav-dot') : [];
+    return dots.length>0 && dots[dots.length-1].classList.contains('active');
+  }
+  function update(){
+    var show = onFinalSlide();
+    if(cta) cta.classList.toggle('wf-show', show);
+    document.body.classList.toggle('wf-final', show);
+  }
+  if(pres) new MutationObserver(update).observe(pres,{attributes:true,attributeFilter:['class']});
+  if(dotsWrap) new MutationObserver(update).observe(dotsWrap,{attributes:true,childList:true,subtree:true,attributeFilter:['class']});
+  document.addEventListener('click', function(){ setTimeout(update,30); }, true);
+  document.addEventListener('keydown', function(){ setTimeout(update,30); }, true);
+  document.addEventListener('touchend', function(){ setTimeout(update,60); }, true);
+  update();
+});
+</script>
+
+<div id="index-screen">
+  <div class="index-title">WorkFit Tools</div>
+  <div class="index-grid" id="index-grid"></div>
+</div>
+
+<div id="presentation">
+  <div class="slide-track" id="slide-track"></div>
+  <div class="tap-hint" id="tap-hint">TAP TO REVEAL</div>
+  <div class="nav-bar" id="nav-bar">
+    <button class="nav-btn" id="btn-index">SUMMARY</button>
+    <div id="nav-dots" style="display:flex;gap:8px;align-items:center;"></div>
+    <button class="nav-btn" id="btn-reset">RESTART</button>
+  </div>
+</div>
+<div class="brand-footer" id="brand-footer">Rob Maisey &middot; <a href="../../workfit/">WorkFit</a></div>
+
+<script>
+const DECKS = [
+  {
+    id: 'time-travel',
+    title: 'Time Travel',
+    subtitle: 'Past, present, future: how the brain controls the timeline',
+    slides: [
+      {
+        number: '',
+        title: 'THE BRAIN',
+        subtitle: 'Three systems, one timeline',
+        tagline: 'The oldest system wins unless you override it.',
+        type: 'brain-diagram',
+      },
+      {
+        number: '1',
+        title: 'RECOGNITION',
+        subtitle: 'Where the person is',
+        tagline: 'You are always somewhere on this grid.',
+        rows: [
+          { theme: 'EXPERIENCE',   past: 'Memories',      present: 'Perception',       future: 'Dreams' },
+          { theme: 'BRAIN REGION', past: 'Stem / Limbic', present: 'Limbic',           future: 'Neo Cortex' },
+          { theme: 'MENTAL STATE', past: 'Depression',    present: 'Addiction',        future: 'Anxiety' },
+          { theme: 'LANGUAGE',     past: 'Novel',         present: 'Script',           future: 'Fantasy' },
+        ]
+      },
+      {
+        number: '2',
+        title: 'MECHANISM',
+        subtitle: 'How it works',
+        tagline: 'Accountability asks what you will do, not what you did.',
+        rows: [
+          { theme: 'THINKING',   past: 'Judgement',  present: 'Decision',        future: 'Choice' },
+          { theme: 'OWNERSHIP',  past: 'Blame',      present: 'Responsibility',  future: 'Accountability', futureB: true },
+          { theme: 'AGENCY',     past: 'Beliefs',    present: 'Power',           future: 'Control' },
+          { theme: 'STATE',      past: 'Trauma',     present: 'Habit',           future: 'Will (limited)' },
+        ]
+      },
+      {
+        number: '3',
+        title: 'OUTPUT',
+        subtitle: 'Where it leads',
+        tagline: 'We all make choices, including the choice to do nothing.',
+        rows: [
+          { theme: 'NAVIGATION', past: 'Rearview',   present: 'Reaction',    future: 'Direction' },
+          { theme: 'STRATEGY',   past: 'Hindsight',  present: 'Adaptation',  future: 'Plan' },
+          { theme: 'MOVEMENT',   past: 'Drift',      present: 'Drive',       future: 'Purpose' },
+        ]
+      },
+      {
+        number: 'SUMMARY',
+        title: 'ADAPT OR ACCEPT',
+        type: 'index-card',
+        closingLine: 'Both are choices. Neither is wrong. Only one creates change.',
+        pairs: [
+          ['COMFORT',    'DISCOMFORT'],
+          ['INACTION',   'ACTION'],
+          ['SAFETY',     'RISK'],
+          ['FREEZE',     'MOVEMENT'],
+          ['RESENTMENT', 'GRATITUDE'],
+          ['VICTIM',     'AGENCY'],
+        ]
+      }
+    ]
+  },
+];
+
+let currentDeck = null, currentSlide = 0, revealStep = 0, totalSteps = 0;
+
+function buildIndex() {
+  const grid = document.getElementById('index-grid');
+  grid.innerHTML = '';
+  DECKS.forEach((deck, i) => {
+    const card = document.createElement('div');
+    card.className = 'index-card';
+    card.innerHTML = `
+      <div class="index-card-number">${String(i+1).padStart(2,'0')}</div>
+      <div class="index-card-title">${deck.title}</div>
+      <div class="index-card-sub">${deck.subtitle}</div>
+      <div class="index-card-count">${deck.slides.length} slides</div>`;
+    card.addEventListener('click', () => openDeck(deck));
+    grid.appendChild(card);
+  });
+}
+
+function openDeck(deck) {
+  currentDeck = deck; currentSlide = 0; revealStep = 0;
+  buildSlides(deck);
+  document.getElementById('index-screen').classList.add('hidden');
+  document.getElementById('presentation').classList.add('active');
+  document.getElementById('brand-footer').classList.add('visible');
+  setTimeout(() => { document.getElementById('nav-bar').classList.add('visible'); revealCurrentSlide(); }, 100);
+}
+
+function backToIndex() {
+  document.getElementById('presentation').classList.remove('active');
+  document.getElementById('nav-bar').classList.remove('visible');
+  document.getElementById('tap-hint').classList.remove('visible');
+  document.getElementById('brand-footer').classList.remove('visible');
+  document.getElementById('index-screen').classList.remove('hidden');
+  currentDeck = null;
+}
+
+function buildSlides(deck) {
+  const track = document.getElementById('slide-track');
+  track.innerHTML = ''; track.style.transform = 'translateX(0)';
+  deck.slides.forEach((slide, si) => {
+    const el = document.createElement('div');
+    el.className = 'slide'; el.dataset.index = si;
+    if (slide.type === 'brain-diagram') el.innerHTML = buildBrainSlide(slide);
+    else if (slide.type === 'index-card') el.innerHTML = buildIndexCardSlide(slide);
+    else el.innerHTML = buildGridSlide(slide);
+    track.appendChild(el);
+  });
+  buildNavDots(deck.slides.length);
+}
+
+function buildGridSlide(slide) {
+  let html = `
+    <div class="slide-header" data-reveal="header">
+      <div class="slide-number">${slide.number} /</div>
+      <div class="slide-title">${slide.title}</div>
+      <div class="slide-subtitle">${slide.subtitle}</div>
+      ${slide.tagline ? `<div class="slide-tagline">${slide.tagline}</div>` : ''}
+    </div>
+    <div class="grid-table">
+      <div class="direction-row" data-reveal="directions">
+        <div></div>
+        <div class="direction-label left"><span>REGRESSION</span><div class="arrow-line"></div></div>
+        <div></div>
+        <div class="direction-label right"><div class="arrow-line"></div><span>PROGRESSION</span></div>
+      </div>
+      <div class="col-headers" data-reveal="colheaders">
+        <div class="col-header theme">THEME</div>
+        <div class="col-header past">PAST</div>
+        <div class="col-header present">PRESENT</div>
+        <div class="col-header future">FUTURE</div>
+      </div>`;
+  slide.rows.forEach((row, ri) => {
+    const fb = row.futureB ? ' bold' : '';
+    html += `
+      <div class="data-row" data-reveal="row-${ri}">
+        <div class="cell theme">${row.theme}</div>
+        <div class="cell past">${row.past}</div>
+        <div class="cell present">${row.present}</div>
+        <div class="cell future${fb}">${row.future}</div>
+      </div>`;
+  });
+  html += `
+      <div class="footer-row" data-reveal="footer">
+        <div></div>
+        <div class="footer-cell no-control">NO DIRECT CONTROL</div>
+        <div class="footer-cell see-index">SEE SUMMARY</div>
+        <div class="footer-cell no-control">NO DIRECT CONTROL</div>
+      </div>
+    </div>`;
+  return html;
+}
+
+function buildIndexCardSlide(slide) {
+  let ph = '';
+  slide.pairs.forEach((p, pi) => {
+    ph += `<div class="index-pair-row" data-reveal="pair-${pi}">
+      <div class="index-pair-cell">${p[0]}</div>
+      <div class="index-pair-cell">${p[1]}</div>
+    </div>`;
+  });
+  return `
+    <div class="index-slide-content">
+      <div class="index-headline" data-reveal="headline">${slide.title}</div>
+      <div class="slide-header" data-reveal="header" style="margin-bottom:16px">
+        <div class="slide-number">SUMMARY /</div>
+        <div class="slide-subtitle" style="color:var(--present)">Present-State Binary</div>
+        <div class="slide-subtitle" style="margin-top:4px">The limbic control point. Every row passes through here.</div>
+      </div>
+      <div class="index-box">
+        <div class="index-box-header" data-reveal="box-header">
+          <div class="index-col-label">LIMBIC DEFAULT</div>
+          <div class="index-col-label">OVERRIDE</div>
+        </div>
+        ${ph}
+      </div>
+      <div class="index-control-label" data-reveal="control-label">
+        <div class="index-control-line"></div>
+        <span>CONTROL</span>
+        <div class="index-control-line"></div>
+      </div>
+      <div class="index-footer-note" data-reveal="footer-note">
+        Left column is where the limbic system keeps you. Right column is where movement starts.
+        ${slide.closingLine ? `<div class="slide-tagline" style="margin-top:14px;font-size:clamp(12px,1.4vw,15px)">${slide.closingLine}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+function buildBrainSlide(slide) {
+  return `
+    <div class="slide-header" data-reveal="header">
+      <div class="slide-title">${slide.title}</div>
+      <div class="slide-subtitle">${slide.subtitle}</div>
+      ${slide.tagline ? `<div class="slide-tagline">${slide.tagline}</div>` : ''}
+    </div>
+    <div class="brain-layout">
+      <div class="brain-views">
+        <div class="brain-svg-wrap">
+          <svg viewBox="0 0 480 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+            <g class="brain-layer" data-reveal="layer-stem" data-reveal-group="stem">
+              <path d="M218 340 Q215 320 216 300 Q217 285 220 270 M232 340 Q235 320 234 300 Q233 285 230 270" fill="none" stroke="var(--past)" stroke-width="1.2" opacity="0.4"/>
+              <path d="M210 275 Q200 260 198 245 Q196 230 198 218 Q200 208 208 202 Q215 198 225 198 Q235 198 242 202 Q250 208 252 218 Q254 230 252 245 Q250 260 240 275 Q235 282 225 285 Q215 282 210 275Z" fill="rgba(192,180,255,0.18)" stroke="var(--past)" stroke-width="1.8"/>
+              <path d="M202 230 Q195 225 194 218 Q195 212 202 208" fill="none" stroke="var(--past)" stroke-width="1" opacity="0.5"/>
+              <path d="M248 230 Q255 225 256 218 Q255 212 248 208" fill="none" stroke="var(--past)" stroke-width="1" opacity="0.5"/>
+              <path d="M215 250 Q225 245 235 250" fill="none" stroke="var(--past)" stroke-width="0.6" opacity="0.3"/>
+              <path d="M218 260 Q225 256 232 260" fill="none" stroke="var(--past)" stroke-width="0.6" opacity="0.3"/>
+              <path d="M248 210 Q270 200 282 215 Q290 230 280 248 Q270 260 255 258 Q248 252 248 240Z" fill="rgba(192,180,255,0.12)" stroke="var(--past)" stroke-width="1.2"/>
+              <path d="M258 220 Q270 218 278 225" fill="none" stroke="var(--past)" stroke-width="0.7" opacity="0.4"/>
+              <path d="M255 232 Q268 230 276 238" fill="none" stroke="var(--past)" stroke-width="0.7" opacity="0.4"/>
+              <path d="M254 244 Q264 242 272 248" fill="none" stroke="var(--past)" stroke-width="0.7" opacity="0.4"/>
+            </g>
+            <g class="brain-layer" data-reveal="layer-limbic" data-reveal-group="limbic">
+              <path d="M195 195 Q180 185 172 170 Q168 158 175 148 Q182 140 195 142 Q205 145 210 155 Q215 165 210 178 Q205 188 200 195Z" fill="rgba(255,116,114,0.20)" stroke="var(--present)" stroke-width="1.5"/>
+              <path d="M172 185 Q162 178 160 168 Q160 158 168 152 Q175 148 180 155 Q184 162 182 172 Q180 180 175 186Z" fill="rgba(255,116,114,0.25)" stroke="var(--present)" stroke-width="1.5"/>
+              <ellipse cx="220" cy="165" rx="22" ry="16" fill="rgba(255,116,114,0.15)" stroke="var(--present)" stroke-width="1.5"/>
+              <ellipse cx="210" cy="188" rx="12" ry="8" fill="rgba(255,116,114,0.20)" stroke="var(--present)" stroke-width="1.2"/>
+              <path d="M175 145 Q180 120 200 110 Q220 102 240 108 Q255 115 258 130" fill="none" stroke="var(--present)" stroke-width="2" opacity="0.6" stroke-dasharray="4 3"/>
+              <path d="M195 150 Q205 130 220 125 Q235 122 245 130" fill="none" stroke="var(--present)" stroke-width="1" opacity="0.4"/>
+              <text x="155" y="140" style="font-family:'JetBrains Mono',monospace;font-size:9px;fill:var(--present);opacity:0.6">amygdala</text>
+              <text x="186" y="128" style="font-family:'JetBrains Mono',monospace;font-size:9px;fill:var(--present);opacity:0.6">hippocampus</text>
+              <text x="220" y="170" text-anchor="middle" style="font-family:'JetBrains Mono',monospace;font-size:9px;fill:var(--present);opacity:0.6">thalamus</text>
+            </g>
+            <g class="brain-layer" data-reveal="layer-cortex" data-reveal-group="cortex">
+              <path d="M145 220 Q125 205 112 180 Q100 155 100 130 Q100 105 112 82 Q128 58 155 42 Q180 28 210 25 Q240 24 268 32 Q295 42 315 65 Q332 88 335 115 Q338 140 330 168 Q322 192 305 210 Q290 225 272 230 Q260 233 252 228" fill="rgba(60,220,168,0.07)" stroke="var(--future)" stroke-width="2"/>
+              <path d="M145 220 Q135 215 128 205 Q120 192 115 178" fill="none" stroke="var(--future)" stroke-width="1.8" opacity="0.6"/>
+              <path d="M220 35 Q215 55 218 75 Q220 90 215 105" fill="none" stroke="var(--future)" stroke-width="1.2" opacity="0.4"/>
+              <path d="M160 170 Q180 155 205 148 Q230 142 255 148" fill="none" stroke="var(--future)" stroke-width="1.2" opacity="0.4"/>
+              <path d="M175 60 Q190 50 205 48" fill="none" stroke="var(--future)" stroke-width="0.8" opacity="0.35"/>
+              <path d="M165 80 Q182 68 200 65" fill="none" stroke="var(--future)" stroke-width="0.8" opacity="0.35"/>
+              <path d="M155 100 Q172 88 192 85" fill="none" stroke="var(--future)" stroke-width="0.8" opacity="0.35"/>
+              <path d="M235 48 Q255 50 272 60" fill="none" stroke="var(--future)" stroke-width="0.8" opacity="0.35"/>
+              <path d="M240 68 Q260 70 280 82" fill="none" stroke="var(--future)" stroke-width="0.8" opacity="0.35"/>
+              <path d="M238 90 Q258 92 278 105" fill="none" stroke="var(--future)" stroke-width="0.8" opacity="0.35"/>
+              <path d="M280 120 Q300 125 318 140" fill="none" stroke="var(--future)" stroke-width="0.8" opacity="0.3"/>
+              <path d="M270 145 Q290 148 310 162" fill="none" stroke="var(--future)" stroke-width="0.8" opacity="0.3"/>
+              <path d="M140 130 Q155 120 172 118" fill="none" stroke="var(--future)" stroke-width="0.8" opacity="0.3"/>
+              <path d="M132 155 Q148 145 168 142" fill="none" stroke="var(--future)" stroke-width="0.8" opacity="0.3"/>
+              <path d="M298 185 Q312 178 325 185" fill="none" stroke="var(--future)" stroke-width="0.8" opacity="0.3"/>
+              <path d="M290 200 Q305 195 318 200" fill="none" stroke="var(--future)" stroke-width="0.8" opacity="0.3"/>
+              <text x="168" y="56" style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:var(--future);opacity:0.4;letter-spacing:1px">FRONTAL</text>
+              <text x="262" y="56" style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:var(--future);opacity:0.4;letter-spacing:1px">PARIETAL</text>
+              <text x="300" y="200" style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:var(--future);opacity:0.4;letter-spacing:1px">OCCIPITAL</text>
+              <text x="168" y="165" style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:var(--future);opacity:0.4;letter-spacing:1px">TEMPORAL</text>
+            </g>
+          </svg>
+        </div>
+        <div class="brain-info-cards">
+          <div class="brain-info-card c-past" data-reveal="card-stem" data-reveal-group="stem">
+            <div class="brain-info-title">BRAIN STEM + CEREBELLUM</div>
+            <div class="brain-info-age">~500 million years old</div>
+            <div class="brain-info-sub">Survival</div>
+            <div class="brain-info-desc">Breathing, heart rate, reflexes, balance. Automatic. No conscious input. Shared with reptiles. Always on.</div>
+          </div>
+          <div class="brain-info-card c-present" data-reveal="card-limbic" data-reveal-group="limbic">
+            <div class="brain-info-title">LIMBIC SYSTEM</div>
+            <div class="brain-info-age">~150 million years old</div>
+            <div class="brain-info-sub">Emotion + Memory</div>
+            <div class="brain-info-desc">Fear, reward, bonding, memory. Decides before you do. The gatekeeper. Shared with mammals. Runs the present.</div>
+          </div>
+          <div class="brain-info-card c-future" data-reveal="card-cortex" data-reveal-group="cortex">
+            <div class="brain-info-title">NEO CORTEX</div>
+            <div class="brain-info-age">Prefrontal expansion ~2 million years ago</div>
+            <div class="brain-info-sub">Thinking + Planning</div>
+            <div class="brain-info-desc">Language, reasoning, planning, impulse control. Present in all mammals, massively expanded in humans. First to go offline under stress.</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildNavDots(count) {
+  const c = document.getElementById('nav-dots'); c.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const d = document.createElement('div');
+    d.className = 'nav-dot' + (i===0?' active':'');
+    d.addEventListener('click', () => goToSlide(i));
+    c.appendChild(d);
+  }
+}
+function updateNavDots() {
+  document.querySelectorAll('.nav-dot').forEach((d,i) => d.classList.toggle('active', i===currentSlide));
+}
+
+function goToSlide(index) {
+  if (!currentDeck || index<0 || index>=currentDeck.slides.length) return;
+  currentSlide = index; revealStep = 0;
+  document.getElementById('slide-track').style.transform = `translateX(-${index*100}vw)`;
+  updateNavDots();
+  const slide = document.getElementById('slide-track').children[index];
+  slide.querySelectorAll('[data-reveal]').forEach(el => el.classList.remove('visible'));
+  setTimeout(() => revealCurrentSlide(), 200);
+}
+function nextSlide() { goToSlide(currentSlide+1); }
+function prevSlide() { goToSlide(currentSlide-1); }
+
+function revealCurrentSlide() {
+  const slide = document.getElementById('slide-track').children[currentSlide];
+  const els = slide.querySelectorAll('[data-reveal]');
+  const steps = []; const grouped = new Set();
+  els.forEach(el => {
+    const group = el.getAttribute('data-reveal-group');
+    if (group) {
+      if (!grouped.has(group)) {
+        grouped.add(group);
+        steps.push(Array.from(slide.querySelectorAll(`[data-reveal-group="${group}"]`)));
+      }
+    } else { steps.push([el]); }
+  });
+  slide._revealSteps = steps;
+  totalSteps = steps.length; revealStep = 0;
+  if (totalSteps>0) document.getElementById('tap-hint').classList.add('visible');
+  revealNext();
+}
+
+function revealNext() {
+  const slide = document.getElementById('slide-track').children[currentSlide];
+  const steps = slide._revealSteps;
+  if (!steps || revealStep >= steps.length) {
+    document.getElementById('tap-hint').classList.remove('visible'); return false;
+  }
+  steps[revealStep].forEach(el => el.classList.add('visible'));
+  revealStep++;
+  if (revealStep >= steps.length) document.getElementById('tap-hint').classList.remove('visible');
+  return true;
+}
+
+function revealAll() {
+  document.getElementById('slide-track').children[currentSlide]
+    .querySelectorAll('[data-reveal]').forEach(el => el.classList.add('visible'));
+  revealStep = totalSteps;
+  document.getElementById('tap-hint').classList.remove('visible');
+}
+
+function resetCurrentSlide() {
+  document.getElementById('slide-track').children[currentSlide]
+    .querySelectorAll('[data-reveal]').forEach(el => el.classList.remove('visible'));
+  revealStep = 0;
+  document.getElementById('tap-hint').classList.add('visible');
+  setTimeout(() => revealCurrentSlide(), 200);
+}
+
+document.getElementById('presentation').addEventListener('click', (e) => {
+  if (e.target.closest('.nav-bar') || e.target.closest('.tap-hint')) return;
+  if (revealStep >= totalSteps) nextSlide(); else revealNext();
+});
+
+let touchStartX=0, touchStartY=0, isSwiping=false;
+document.getElementById('presentation').addEventListener('touchstart', (e) => {
+  if (e.target.closest('.nav-bar')) return;
+  touchStartX=e.touches[0].clientX; touchStartY=e.touches[0].clientY; isSwiping=false;
+}, {passive:true});
+document.getElementById('presentation').addEventListener('touchmove', (e) => {
+  const dx=Math.abs(e.touches[0].clientX-touchStartX), dy=Math.abs(e.touches[0].clientY-touchStartY);
+  if (dx>30&&dx>dy) isSwiping=true;
+}, {passive:true});
+document.getElementById('presentation').addEventListener('touchend', (e) => {
+  if (!isSwiping || e.target.closest('.nav-bar')) return;
+  const dx=e.changedTouches[0].clientX-touchStartX;
+  if (dx<-50) nextSlide(); else if (dx>50) prevSlide();
+}, {passive:true});
+
+document.addEventListener('keydown', (e) => {
+  if (!currentDeck) return;
+  switch(e.key) {
+    case 'ArrowRight': case ' ': e.preventDefault();
+      if (revealStep>=totalSteps) nextSlide(); else revealNext(); break;
+    case 'ArrowLeft': e.preventDefault(); prevSlide(); break;
+    case 'ArrowDown': e.preventDefault(); revealNext(); break;
+    case 'ArrowUp': e.preventDefault(); resetCurrentSlide(); break;
+    case 'Escape': e.preventDefault(); backToIndex(); break;
+    case 'r': e.preventDefault(); resetCurrentSlide(); break;
+    case 'a': e.preventDefault(); revealAll(); break;
+  }
+});
+
+// SUMMARY: jump to last slide (the summary card)
+document.getElementById('btn-index').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (currentDeck) goToSlide(currentDeck.slides.length - 1);
+});
+// RESTART: go back to slide 0, full deck
+document.getElementById('btn-reset').addEventListener('click', (e) => {
+  e.stopPropagation();
+  goToSlide(0);
+});
+
+buildIndex();
+</script>
+</body>
+</html>

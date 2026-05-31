@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkFit Tools: Drama Triangle</title>
+<meta name="description" content="An interactive session tool mapping the Drama Triangle. By Rob Maisey, WorkFit.">
+<meta name="author" content="Rob Maisey, ShareZen Consulting">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0e0e10; --surface: #18181b; --surface-hover: #1f1f23; --border: #303038;
+  --text-primary: #f2f2f4; --text-secondary: #c8c8d0; --text-tertiary: #7a7a88;
+  --past: #c0b4ff; --past-bg: rgba(192,180,255,0.20); --past-border: rgba(192,180,255,0.45);
+  --present: #ff7472; --present-bg: rgba(255,116,114,0.20); --present-border: rgba(255,116,114,0.45);
+  --future: #3cdca8; --future-bg: rgba(60,220,168,0.20); --future-border: rgba(60,220,168,0.45);
+  --gold: #f0c86a; --gold-bg: rgba(240,200,106,0.20); --gold-border: rgba(240,200,106,0.45);
+  --accent: #ff7472;
+}
+
+html, body { background: var(--bg); color: var(--text-primary); font-family: 'DM Sans', sans-serif;
+  overflow: hidden; height: 100%; width: 100%; user-select: none; -webkit-user-select: none; cursor: default; }
+
+#index-screen { position: fixed; inset: 0; background: var(--bg); z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px; transition: opacity 0.4s ease, transform 0.4s ease; }
+#index-screen.hidden { opacity: 0; transform: scale(0.96); pointer-events: none; }
+.index-title { font-size: clamp(13px,2vw,16px); font-weight: 600; letter-spacing: 4px;
+  color: var(--text-tertiary); margin-bottom: 40px; text-transform: uppercase; }
+.index-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,300px));
+  gap: 16px; max-width: 960px; width: 100%; justify-content: center; }
+.index-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 28px 24px; cursor: pointer; transition: all 0.25s ease; position: relative; overflow: hidden; }
+.index-card:hover { background: var(--surface-hover); border-color: var(--accent); transform: translateY(-2px); }
+.index-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background: var(--accent); opacity:0; transition: opacity 0.25s; }
+.index-card:hover::before { opacity:1; }
+.index-card-number { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-tertiary); margin-bottom:12px; letter-spacing:1px; }
+.index-card-title { font-size:20px; font-weight:600; color:var(--text-primary); margin-bottom:6px; }
+.index-card-sub { font-size:14px; color:var(--text-secondary); }
+.index-card-count { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-tertiary); margin-top:16px; }
+
+#presentation { position: fixed; inset: 0; display: none; }
+#presentation.active { display: block; }
+.slide-track { display: flex; height: 100vh; transition: transform 0.45s cubic-bezier(0.25,0.1,0.25,1); }
+.slide { min-width: 100vw; height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: clamp(16px,3vw,32px) clamp(16px,4vw,48px) 80px; position: relative; }
+
+.slide-header { text-align: center; margin-bottom: clamp(14px,2.5vh,26px);
+  opacity:0; transform:translateY(10px); transition: all 0.5s ease; }
+.slide-header.visible { opacity:1; transform:translateY(0); }
+.slide-number { font-family:'JetBrains Mono',monospace; font-size:clamp(11px,1.5vw,14px);
+  color:var(--text-tertiary); letter-spacing:2px; margin-bottom:4px; }
+.slide-title { font-size:clamp(22px,4vw,32px); font-weight:700; letter-spacing:3px; color:var(--text-primary); }
+.slide-subtitle { font-size:clamp(13px,1.8vw,16px); color:var(--text-secondary); margin-top:4px; }
+.slide-tagline { font-size:clamp(12px,1.6vw,15px); font-style:italic; color:var(--text-tertiary); margin-top:8px; }
+
+.grid-table { width:100%; max-width:1100px; flex:1; display:flex; flex-direction:column; justify-content:center; }
+.col-headers { display:grid; gap:clamp(4px,1vw,8px); margin-bottom:clamp(4px,0.8vh,8px);
+  opacity:0; transform:translateY(8px); transition: all 0.4s ease; }
+.col-headers.visible { opacity:1; transform:translateY(0); }
+.col-header { padding:clamp(10px,1.5vh,16px) clamp(8px,1vw,16px); border-radius:6px;
+  font-size:clamp(12px,1.6vw,16px); font-weight:700; letter-spacing:clamp(1px,0.2vw,2px); text-align:center; }
+.col-header.theme { background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-secondary); }
+.col-header.past { background:var(--past-bg); border:1px solid var(--past-border); color:var(--past); box-shadow:0 2px 14px rgba(192,180,255,0.14); }
+.col-header.present { background:var(--present-bg); border:1px solid var(--present-border); color:var(--present); box-shadow:0 2px 14px rgba(255,116,114,0.14); }
+.col-header.future { background:var(--future-bg); border:1px solid var(--future-border); color:var(--future); box-shadow:0 2px 14px rgba(60,220,168,0.14); }
+.col-header.gold { background:var(--gold-bg); border:1px solid var(--gold-border); color:var(--gold); box-shadow:0 2px 14px rgba(240,200,106,0.14); }
+
+.data-row { display:grid; gap:clamp(4px,1vw,8px); margin-bottom:clamp(3px,0.6vh,6px);
+  opacity:0; transform:translateY(12px); transition: all 0.45s ease; }
+.data-row.visible { opacity:1; transform:translateY(0); }
+.cell { padding:clamp(9px,1.4vh,16px) clamp(6px,1vw,16px); border-radius:5px;
+  font-size:clamp(12px,1.7vw,16px); font-weight:600; text-align:center; line-height:1.4; }
+.cell.theme { background:rgba(255,255,255,0.04); color:var(--text-secondary); font-size:clamp(11px,1.3vw,14px); letter-spacing:0.5px; }
+.cell.past { background:var(--past-bg); color:var(--past); }
+.cell.present { background:var(--present-bg); color:var(--present); }
+.cell.future { background:var(--future-bg); color:var(--future); }
+.cell.gold { background:var(--gold-bg); color:var(--gold); }
+.cell.problem { background:var(--gold-bg); color:var(--gold); }
+.cell.dim-past { background:rgba(192,180,255,0.08); color:rgba(192,180,255,0.50); }
+.cell.dim-present { background:rgba(255,116,114,0.08); color:rgba(255,116,114,0.50); }
+.cell.dim-future { background:rgba(60,220,168,0.08); color:rgba(60,220,168,0.50); }
+
+.footer-row { display:grid; gap:clamp(4px,1vw,8px); margin-top:clamp(10px,1.8vh,18px);
+  opacity:0; transform:translateY(8px); transition: all 0.4s ease; }
+.footer-row.visible { opacity:1; transform:translateY(0); }
+.footer-cell { font-family:'JetBrains Mono',monospace; font-size:clamp(9px,1.2vw,13px);
+  font-weight:600; letter-spacing:1px; text-align:center; padding:6px; }
+.footer-cell.no-control { color:var(--text-tertiary); }
+.footer-cell.see-index { color:var(--present); opacity:0.7; }
+.footer-cell.gold-note { color:var(--gold); opacity:0.8; }
+
+.tri-layout { display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; max-width:1100px; flex:1; }
+.tri-views { display:flex; align-items:center; justify-content:center; width:100%; gap:28px; }
+.tri-svg-wrap { flex:0 0 clamp(260px,46vw,540px); height:clamp(220px,42vw,460px); }
+.brain-layer { opacity:0; transition: opacity 0.75s ease; }
+.brain-layer.visible { opacity:1; }
+.tri-info-cards { flex:1; display:flex; flex-direction:column; justify-content:center; gap:10px; max-width:360px; min-width:0; }
+.tri-info-card { padding:clamp(10px,1.6vh,16px) clamp(10px,1.4vw,20px); border-radius:8px;
+  background:var(--surface); border:1px solid var(--border); opacity:0; transform:translateX(20px); transition: all 0.6s ease; }
+.tri-info-card.visible { opacity:1; transform:translateX(0); }
+.tri-info-card.c-gold { border-left:3px solid var(--gold); }
+.tri-info-card.c-past { border-left:3px solid var(--past); }
+.tri-info-card.c-present { border-left:3px solid var(--present); }
+.tri-info-card.c-future { border-left:3px solid var(--future); }
+.tri-info-title { font-size:clamp(11px,1.4vw,14px); font-weight:700; letter-spacing:1px; margin-bottom:2px; }
+.tri-info-card.c-gold .tri-info-title { color:var(--gold); }
+.tri-info-card.c-past .tri-info-title { color:var(--past); }
+.tri-info-card.c-present .tri-info-title { color:var(--present); }
+.tri-info-card.c-future .tri-info-title { color:var(--future); }
+.tri-info-step { font-family:'JetBrains Mono',monospace; font-size:clamp(9px,1vw,11px); color:var(--text-tertiary); margin-bottom:3px; letter-spacing:1px; }
+.tri-info-sub { font-size:clamp(11px,1.3vw,13px); font-weight:600; color:var(--text-secondary); margin-bottom:3px; }
+.tri-info-desc { font-size:clamp(10px,1.2vw,12px); color:var(--text-tertiary); line-height:1.5; }
+
+.index-slide-content { max-width:540px; width:100%; }
+.index-headline { font-size:clamp(24px,4vw,38px); font-weight:700; letter-spacing:3px;
+  text-align:center; color:var(--text-primary); margin-bottom:8px;
+  opacity:0; transform:translateY(10px); transition: all 0.5s ease; }
+.index-headline.visible { opacity:1; transform:translateY(0); }
+.index-box { margin-top:24px; border:1px solid var(--gold-border); border-radius:8px;
+  padding:clamp(14px,2.5vw,24px) clamp(12px,2vw,22px); background:var(--gold-bg); }
+.index-box-header { display:grid; grid-template-columns:1fr 1fr; gap:10px;
+  margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid rgba(240,200,106,0.20);
+  opacity:0; transition: all 0.4s ease; }
+.index-box-header.visible { opacity:1; }
+.index-col-label { font-size:clamp(11px,1.4vw,14px); font-weight:600; letter-spacing:1.5px; color:var(--gold); opacity:0.7; text-align:center; }
+.index-pair-row { display:grid; grid-template-columns:1fr 1fr; gap:clamp(6px,1vw,10px);
+  margin-bottom:6px; opacity:0; transform:translateY(8px); transition: all 0.4s ease; }
+.index-pair-row.visible { opacity:1; transform:translateY(0); }
+.index-pair-cell { background:rgba(240,200,106,0.12); border-radius:5px; padding:clamp(9px,1.4vh,14px);
+  text-align:center; font-size:clamp(12px,1.7vw,16px); font-weight:600; color:var(--gold); }
+.index-control-label { display:flex; align-items:center; justify-content:center; gap:16px; margin-top:18px; opacity:0; transition: all 0.4s ease; }
+.index-control-label.visible { opacity:1; }
+.index-control-label span { font-size:clamp(12px,1.6vw,16px); font-weight:600; letter-spacing:2px; color:var(--text-secondary); }
+.index-control-line { width:40px; height:1px; background:var(--text-tertiary); }
+.index-footer-note { text-align:center; font-size:clamp(12px,1.4vw,14px); color:var(--text-tertiary); margin-top:18px; line-height:1.6; opacity:0; transition: all 0.4s ease; }
+.index-footer-note.visible { opacity:1; }
+
+@media (max-width:600px) {
+  .tri-views { flex-direction:column; gap:14px; overflow-y:auto; }
+  .tri-svg-wrap { flex:none; width:100%; height:clamp(200px,60vw,300px); }
+  .tri-info-cards { max-width:100%; width:100%; }
+  .tri-info-card { transform:translateX(0) translateY(14px); }
+  .tri-info-card.visible { transform:translateX(0) translateY(0); }
+  .data-row { display:flex; flex-direction:column; gap:0; margin-bottom:10px;
+    border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .cell.theme { font-size:11px; letter-spacing:1.5px; padding:8px 12px;
+    text-align:left; border-radius:0; border-bottom:1px solid var(--border); }
+  .cell.past,.cell.present,.cell.future,.cell.gold,.cell.problem,
+  .cell.dim-past,.cell.dim-present,.cell.dim-future { display:flex; align-items:center;
+    gap:10px; padding:10px 14px; border-radius:0; font-size:14px; text-align:left; }
+}
+
+.nav-bar { position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:clamp(10px,2vw,18px); padding:10px clamp(12px,2vw,24px);
+  background:var(--surface); border:1px solid var(--border); border-radius:40px;
+  z-index:50; opacity:0; transition: opacity 0.3s ease; max-width:calc(100vw - 32px); }
+.nav-bar.visible { opacity:1; }
+.nav-dot { width:8px; height:8px; border-radius:50%; background:var(--text-tertiary);
+  cursor:pointer; transition: all 0.25s ease; flex-shrink:0; }
+.nav-dot.active { background:var(--accent); transform:scale(1.3); }
+.nav-btn { font-family:'JetBrains Mono',monospace; font-size:clamp(10px,1.3vw,12px);
+  letter-spacing:1px; color:var(--text-secondary); background:none;
+  border:1px solid var(--border); border-radius:20px; padding:6px clamp(10px,1.5vw,18px);
+  cursor:pointer; transition: all 0.2s ease; white-space:nowrap; }
+.nav-btn:hover { color:var(--text-primary); border-color:var(--text-secondary); }
+.tap-hint { position:fixed; bottom:76px; left:50%; transform:translateX(-50%);
+  font-family:'JetBrains Mono',monospace; font-size:clamp(10px,1.3vw,12px);
+  color:var(--text-tertiary); letter-spacing:1.5px; opacity:0; transition: opacity 0.4s ease; z-index:50; white-space:nowrap; }
+.tap-hint.visible { opacity:1; }
+.brand-footer { position:fixed; bottom:10px; right:16px; font-family:'JetBrains Mono',monospace;
+  font-size:clamp(10px,1.2vw,12px); letter-spacing:1px; color:var(--text-tertiary); z-index:40; display:none; }
+.brand-footer.visible { display:block; }
+.brand-footer a { color:var(--text-tertiary); text-decoration:none; transition: color 0.2s; }
+.brand-footer a:hover { color:var(--text-secondary); }
+</style>
+</head>
+<body>
+<!-- WorkFit site navigation + end CTA (added when this tool was pulled into the main WorkFit site) -->
+<div id="wf-nav">
+  <button id="wf-nav-toggle" type="button" aria-expanded="false" aria-controls="wf-nav-menu">
+    <img src="../../assets/images/logo.jpg" alt="" width="22" height="22">
+    <span>WorkFit site</span>
+    <span id="wf-caret" aria-hidden="true">&#9662;</span>
+  </button>
+  <nav id="wf-nav-menu" aria-label="WorkFit site">
+    <a href="../../">Home</a>
+    <a href="../../workfit/">WorkFit</a>
+    <a href="../../pricing/">Pricing</a>
+    <a href="../../tools/">Tools</a>
+    <a href="../../contact/">Contact</a>
+    <a class="wf-book" href="https://meetings.hubspot.com/rob465" target="_blank" rel="noopener">Book a Meeting</a>
+  </nav>
+</div>
+
+<div id="wf-cta" role="region" aria-label="Next steps">
+  <span class="wf-cta-label">Ready to go further?</span>
+  <a class="wf-cta-ghost" href="../../workfit/">See how WorkFit works</a>
+  <a class="wf-cta-book" href="https://meetings.hubspot.com/rob465" target="_blank" rel="noopener">Book a Meeting</a>
+</div>
+
+<style>
+  #wf-nav { position: fixed; top: 12px; left: 12px; z-index: 1000; font-family: 'DM Sans', system-ui, sans-serif; }
+  #wf-nav-toggle { display:flex; align-items:center; gap:8px; cursor:pointer;
+    background:#0c1340; color:#fff; border:1px solid rgba(255,255,255,0.22);
+    border-radius:30px; padding:7px 14px; font-size:13px; font-weight:700; line-height:1; }
+  #wf-nav-toggle:hover { background:#161d52; }
+  #wf-nav-toggle img { border-radius:50%; display:block; }
+  #wf-caret { color:#f5c400; font-size:11px; }
+  #wf-nav-menu { display:none; flex-direction:column; margin-top:8px; min-width:210px;
+    background:#0c1340; border:1px solid rgba(255,255,255,0.22); border-radius:12px;
+    padding:8px; box-shadow:0 14px 34px rgba(0,0,0,0.5); }
+  #wf-nav.wf-open #wf-nav-menu { display:flex; }
+  #wf-nav-menu a { color:#e9ecff; text-decoration:none; font-size:15px; font-weight:600;
+    padding:10px 12px; border-radius:8px; cursor:pointer; }
+  #wf-nav-menu a:hover { background:rgba(255,255,255,0.10); color:#fff; }
+  #wf-nav-menu a.wf-book { background:#f5c400; color:#0c1340; text-align:center; font-weight:800; margin-top:6px; }
+  #wf-nav-menu a.wf-book:hover { background:#d9ab00; }
+
+  /* End-of-tool CTA: sits in its own band ABOVE the SUMMARY/dots/RESTART bar */
+  #wf-cta { display:none; position:fixed; left:50%; bottom:76px; transform:translateX(-50%);
+    z-index:60; align-items:center; gap:12px; flex-wrap:wrap; justify-content:center;
+    background:rgba(12,19,64,0.94); border:1px solid rgba(255,255,255,0.20); border-radius:40px;
+    padding:8px 12px 8px 18px; max-width:calc(100vw - 32px);
+    font-family:'DM Sans', system-ui, sans-serif; box-shadow:0 14px 34px rgba(0,0,0,0.55); }
+  #wf-cta.wf-show { display:flex; }
+  .wf-cta-label { color:#fff; font-size:14px; font-weight:700; }
+  #wf-cta a { text-decoration:none; font-size:13px; font-weight:700; border-radius:30px; padding:8px 16px; white-space:nowrap; cursor:pointer; }
+  .wf-cta-ghost { color:#fff; border:1px solid rgba(255,255,255,0.45); }
+  .wf-cta-ghost:hover { background:rgba(255,255,255,0.12); }
+  .wf-cta-book { background:#f5c400; color:#0c1340; }
+  .wf-cta-book:hover { background:#d9ab00; }
+
+  /* On the final slide: lift the slide content so the CTA never covers it,
+     and hide the tool's "tap to reveal" hint so nothing stacks on the CTA. */
+  #presentation .slide:last-child { padding-bottom: clamp(150px, 19vh, 180px); }
+  body.wf-final #tap-hint { display:none !important; }
+
+  @media (max-width:600px){
+    .wf-cta-label { width:100%; text-align:center; }
+    #wf-cta { bottom:72px; }
+    #presentation .slide:last-child { padding-bottom: clamp(170px, 26vh, 210px); }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var nav=document.getElementById('wf-nav'), btn=document.getElementById('wf-nav-toggle');
+  if(btn){
+    btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation();
+      var open=nav.classList.toggle('wf-open'); btn.setAttribute('aria-expanded', open?'true':'false'); });
+    document.addEventListener('click', function(e){ if(!nav.contains(e.target)) nav.classList.remove('wf-open'); });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') nav.classList.remove('wf-open'); });
+  }
+
+  // Show the closing CTA only on the FINAL slide of a deck.
+  // The tools mark the current slide by adding .active to its nav dot; the last
+  // slide therefore = the last .nav-dot being .active while #presentation is active.
+  var cta=document.getElementById('wf-cta');
+  var pres=document.getElementById('presentation');
+  var dotsWrap=document.getElementById('nav-dots');
+  function onFinalSlide(){
+    if(!pres || !pres.classList.contains('active')) return false;
+    var dots = dotsWrap ? dotsWrap.querySelectorAll('.nav-dot') : [];
+    return dots.length>0 && dots[dots.length-1].classList.contains('active');
+  }
+  function update(){
+    var show = onFinalSlide();
+    if(cta) cta.classList.toggle('wf-show', show);
+    document.body.classList.toggle('wf-final', show);
+  }
+  if(pres) new MutationObserver(update).observe(pres,{attributes:true,attributeFilter:['class']});
+  if(dotsWrap) new MutationObserver(update).observe(dotsWrap,{attributes:true,childList:true,subtree:true,attributeFilter:['class']});
+  document.addEventListener('click', function(){ setTimeout(update,30); }, true);
+  document.addEventListener('keydown', function(){ setTimeout(update,30); }, true);
+  document.addEventListener('touchend', function(){ setTimeout(update,60); }, true);
+  update();
+});
+</script>
+
+<div id="index-screen">
+  <div class="index-title">WorkFit Tools</div>
+  <div class="index-grid" id="index-grid"></div>
+</div>
+
+<div id="presentation">
+  <div class="slide-track" id="slide-track"></div>
+  <div class="tap-hint" id="tap-hint">TAP TO REVEAL</div>
+  <div class="nav-bar" id="nav-bar">
+    <button class="nav-btn" id="btn-index">SUMMARY</button>
+    <div id="nav-dots" style="display:flex;gap:8px;align-items:center;"></div>
+    <button class="nav-btn" id="btn-reset">RESTART</button>
+  </div>
+</div>
+<div class="brand-footer" id="brand-footer">Rob Maisey &middot; <a href="../../workfit/">WorkFit</a></div>
+
+<script>
+const DECKS = [
+  {
+    id: 'drama-triangle',
+    title: 'Drama Triangle',
+    subtitle: 'An encountered problem. Three ways to avoid solving it.',
+    slides: [
+
+      // SLIDE 0: Triangle builds: two people first, then the triangle grows
+      {
+        number: '',
+        title: 'THE TRIANGLE',
+        subtitle: 'Usually two people. Becomes three when sides are taken.',
+        tagline: 'The triangle does not require a crisis. A dirty coffee mug will do.',
+        type: 'triangle-diagram',
+      },
+
+      // SLIDE 1: The Roles
+      {
+        number: '1',
+        title: 'THE ROLES',
+        subtitle: 'Three responses to a problem nobody is willing or able to address directly',
+        tagline: 'Each position feels completely justified from the inside.',
+        cols: ['VICTIM', 'BAD GUY', 'GOOD GUY'],
+        rows: [
+          { theme: 'RELATIONSHIP TO PROBLEM', c1: 'It is happening to me',        c2: 'They say I caused it',          c3: 'I can fix it' },
+          { theme: 'DEFAULT MOVE',            c1: 'Remove own agency',            c2: 'Defend or reluctantly accept',  c3: 'Step in and take over' },
+          { theme: 'ENTERS VIA',              c1: 'Helplessness',                 c2: 'Being assigned the role',       c3: 'Agreeing with the story' },
+          { theme: 'PAYOFF',                  c1: 'No responsibility',            c2: 'Being right or keeping peace',  c3: 'Being needed' },
+          { theme: 'COST',                    c1: 'Stuck. Dependent.',             c2: 'Isolated. Resented.',           c3: 'Burned out. Invisible.' },
+        ]
+      },
+
+      // SLIDE 2: The Sequence: two person then three
+      {
+        number: '2',
+        title: 'THE SEQUENCE',
+        subtitle: 'Fast, serial, usually starts with just two people',
+        tagline: 'The triangle only becomes a triangle when a third person is recruited to take a side.',
+        cols: ['VICTIM', 'BAD GUY', 'GOOD GUY'],
+        rows: [
+          { theme: 'TWO PERSON',   c1: 'Encounters problem. Assigns blame.',           c2: 'Argue back or accept.',                         c3: 'Not in the picture yet.' },
+          { theme: 'ARGUE BACK',   c1: 'Original Victim is now the Bad Guy.',          c2: 'Requests the Victim position.',                 c3: 'Still not involved.' },
+          { theme: 'TAKE MY SIDE', c1: 'Looks for anyone who will agree.',             c2: 'Refuse = new Bad Guy. Agree = Good Guy.',        c3: 'Recruited by agreeing. That is all it takes.' },
+          { theme: 'THE BINARY',   c1: 'You are with me or you are against me.',       c2: 'No neutral position exists.',                   c3: 'No neutral position exists.' },
+          { theme: 'THE PROBLEM',  c1: 'Still there.',                                 c2: 'Still there.',                                  c3: 'Still there.', isProblem: true },
+        ]
+      },
+
+      // SLIDE 3: The Exit: Time Travel connection
+      {
+        number: '3',
+        title: 'THE EXIT',
+        subtitle: 'Look at the problem. Not at each other.',
+        tagline: 'The exit is not a different role. It is a different question.',
+        cols: ['VICTIM', 'BAD GUY', 'GOOD GUY'],
+        type: 'exit-grid',
+        rows: [
+          { theme: 'TIME ZONE',      c1: 'PAST',                     c2: 'PAST + FUTURE',             c3: 'FUTURE',                    isTimezone: true },
+          { theme: 'DRAMA QUESTION', c1: 'Who did this to me?',      c2: 'Who is responsible?',       c3: 'How do I fix this?' },
+          { theme: 'EXIT QUESTION',  c1: 'What do I actually have?', c2: 'What needs addressing?',    c3: 'What does this person need?' },
+          { theme: 'EXIT ROLE',      c1: 'CREATOR',                  c2: 'CHALLENGER',                c3: 'COACH',                     isGold: true },
+        ]
+      },
+
+      // SLIDE 4: Summary
+      {
+        number: 'SUMMARY',
+        title: 'THE PROBLEM',
+        type: 'index-card',
+        closingLine: 'The exit is not a new role. It is the moment you stop performing and start working.',
+        pairs: [
+          ['VICTIM',        'CREATOR'],
+          ['BAD GUY',       'CHALLENGER'],
+          ['GOOD GUY',      'COACH'],
+          ['BLAME',         'ACCOUNTABILITY'],
+          ['TAKE MY SIDE',  'LOOK AT THE PROBLEM'],
+          ['TRIANGLE',      'EXIT'],
+        ]
+      }
+    ]
+  },
+];
+
+let currentDeck = null, currentSlide = 0, revealStep = 0, totalSteps = 0;
+
+function buildIndex() {
+  const grid = document.getElementById('index-grid');
+  grid.innerHTML = '';
+  DECKS.forEach((deck, i) => {
+    const card = document.createElement('div');
+    card.className = 'index-card';
+    card.innerHTML = `
+      <div class="index-card-number">${String(i+1).padStart(2,'0')}</div>
+      <div class="index-card-title">${deck.title}</div>
+      <div class="index-card-sub">${deck.subtitle}</div>
+      <div class="index-card-count">${deck.slides.length} slides</div>`;
+    card.addEventListener('click', () => openDeck(deck));
+    grid.appendChild(card);
+  });
+}
+
+function openDeck(deck) {
+  currentDeck = deck; currentSlide = 0; revealStep = 0;
+  buildSlides(deck);
+  document.getElementById('index-screen').classList.add('hidden');
+  document.getElementById('presentation').classList.add('active');
+  document.getElementById('brand-footer').classList.add('visible');
+  setTimeout(() => { document.getElementById('nav-bar').classList.add('visible'); revealCurrentSlide(); }, 100);
+}
+
+function backToIndex() {
+  document.getElementById('presentation').classList.remove('active');
+  document.getElementById('nav-bar').classList.remove('visible');
+  document.getElementById('tap-hint').classList.remove('visible');
+  document.getElementById('brand-footer').classList.remove('visible');
+  document.getElementById('index-screen').classList.remove('hidden');
+  currentDeck = null;
+}
+
+function buildSlides(deck) {
+  const track = document.getElementById('slide-track');
+  track.innerHTML = ''; track.style.transform = 'translateX(0)';
+  deck.slides.forEach((slide, si) => {
+    const el = document.createElement('div');
+    el.className = 'slide'; el.dataset.index = si;
+    if (slide.type === 'triangle-diagram') el.innerHTML = buildTriangleDiagramSlide(slide);
+    else if (slide.type === 'index-card') el.innerHTML = buildIndexCardSlide(slide);
+    else el.innerHTML = buildGridSlide(slide);
+    track.appendChild(el);
+  });
+  buildNavDots(deck.slides.length);
+}
+
+function buildGridSlide(slide) {
+  const cols = slide.cols || ['PAST','PRESENT','FUTURE'];
+  const cc = ['past','present','future'];
+  const isExit = slide.type === 'exit-grid';
+  const gc = `clamp(90px,15vw,180px) 1fr 1fr 1fr`;
+  let html = `
+    <div class="slide-header" data-reveal="header">
+      <div class="slide-number">${slide.number} /</div>
+      <div class="slide-title">${slide.title}</div>
+      <div class="slide-subtitle">${slide.subtitle}</div>
+      ${slide.tagline ? `<div class="slide-tagline">${slide.tagline}</div>` : ''}
+    </div>
+    <div class="grid-table">
+      <div class="col-headers" data-reveal="colheaders" style="grid-template-columns:${gc}">
+        <div class="col-header theme">THEME</div>
+        <div class="col-header ${cc[0]}">${cols[0]}</div>
+        <div class="col-header ${cc[1]}">${cols[1]}</div>
+        <div class="col-header ${cc[2]}">${cols[2]}</div>
+      </div>`;
+  slide.rows.forEach((row, ri) => {
+    const c1 = row.c1 !== undefined ? row.c1 : (row.past||'');
+    const c2 = row.c2 !== undefined ? row.c2 : (row.present||'');
+    const c3 = row.c3 !== undefined ? row.c3 : (row.future||'');
+    let cl1=cc[0], cl2=cc[1], cl3=cc[2];
+    if (row.isProblem)            { cl1=cl2=cl3='problem'; }
+    else if (isExit&&row.isGold)  { cl1=cl2=cl3='gold'; }
+    else if (isExit&&row.isTimezone) { cl1='past'; cl2='present'; cl3='future'; }
+    else if (isExit&&row.isDrama) { cl1='dim-past'; cl2='dim-present'; cl3='dim-future'; }
+    html += `
+      <div class="data-row" data-reveal="row-${ri}" style="grid-template-columns:${gc}">
+        <div class="cell theme">${row.theme}</div>
+        <div class="cell ${cl1}">${c1}</div>
+        <div class="cell ${cl2}">${c2}</div>
+        <div class="cell ${cl3}">${c3}</div>
+      </div>`;
+  });
+  if (isExit) {
+    html += `
+      <div class="footer-row" data-reveal="footer" style="grid-template-columns:${gc}">
+        <div></div>
+        <div class="footer-cell gold-note">PRESENT STATE</div>
+        <div class="footer-cell gold-note">LOOK AT THE PROBLEM</div>
+        <div class="footer-cell gold-note">PRESENT STATE</div>
+      </div>`;
+  } else {
+    html += `
+      <div class="footer-row" data-reveal="footer" style="grid-template-columns:${gc}">
+        <div></div>
+        <div class="footer-cell no-control">NO DIRECT CONTROL</div>
+        <div class="footer-cell see-index">SEE SUMMARY</div>
+        <div class="footer-cell no-control">NO DIRECT CONTROL</div>
+      </div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function buildTriangleDiagramSlide(slide) {
+  // SVG viewBox 0 0 560 490
+  // BAD GUY top-left:  (105, 100)
+  // GOOD GUY top-right: (455, 100)
+  // VICTIM bottom:     (280, 395)
+  // Problem centroid:  (280, 198)
+  //
+  // Build: problem > victim > badguy + two-person line + argue-back > extend triangle + "take my side" > goodguy + seek arrow > rotation + still here
+
+  return `
+    <div class="slide-header" data-reveal="header">
+      <div class="slide-title">${slide.title}</div>
+      <div class="slide-subtitle">${slide.subtitle}</div>
+      ${slide.tagline ? `<div class="slide-tagline">${slide.tagline}</div>` : ''}
+    </div>
+    <div class="tri-layout">
+      <div class="tri-views">
+        <div class="tri-svg-wrap">
+          <svg viewBox="0 0 560 490" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+            <defs>
+              <marker id="arr-w" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
+                <path d="M0,1 L6,3.5 L0,6 Z" fill="rgba(255,255,255,0.28)"/>
+              </marker>
+              <marker id="arr-r" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
+                <path d="M0,1 L6,3.5 L0,6 Z" fill="rgba(255,116,114,0.65)"/>
+              </marker>
+              <marker id="arr-t" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
+                <path d="M0,1 L6,3.5 L0,6 Z" fill="rgba(60,220,168,0.55)"/>
+              </marker>
+              <filter id="glow-gold">
+                <feGaussianBlur stdDeviation="3.5" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+
+            <!-- STEP 1: Problem at centre -->
+            <g class="brain-layer" data-reveal="problem-node" data-reveal-group="problem">
+              <circle cx="280" cy="198" r="40" fill="rgba(240,200,106,0.13)"
+                stroke="var(--gold)" stroke-width="1.8" filter="url(#glow-gold)"/>
+              <circle cx="280" cy="198" r="40" fill="none"
+                stroke="rgba(240,200,106,0.28)" stroke-width="1" stroke-dasharray="4 3"/>
+              <text x="280" y="192" text-anchor="middle"
+                style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--gold);letter-spacing:2px;font-weight:500">THE</text>
+              <text x="280" y="207" text-anchor="middle"
+                style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--gold);letter-spacing:2px;font-weight:500">PROBLEM</text>
+            </g>
+
+            <!-- STEP 2: Victim appears: encounters problem -->
+            <g class="brain-layer" data-reveal="tri-v" data-reveal-group="victim">
+              <circle cx="280" cy="395" r="36" fill="rgba(192,180,255,0.18)" stroke="var(--past)" stroke-width="2"/>
+              <text x="280" y="450" text-anchor="middle"
+                style="font-family:'DM Sans',sans-serif;font-size:11px;fill:var(--past);letter-spacing:2px;font-weight:700">VICTIM</text>
+              <text x="280" y="465" text-anchor="middle"
+                style="font-family:'JetBrains Mono',monospace;font-size:9px;fill:var(--text-tertiary);letter-spacing:1px">encounters problem</text>
+            </g>
+
+            <!-- STEP 3: Bad Guy + two-person line + argue-back arrow -->
+            <g class="brain-layer" data-reveal="tri-bg" data-reveal-group="badguy">
+              <!-- Two-person line: Victim to Bad Guy -->
+              <path d="M 264 362 L 118 132" fill="none"
+                stroke="rgba(255,255,255,0.20)" stroke-width="1.5" stroke-dasharray="7 5"/>
+              <!-- Bad Guy circle -->
+              <circle cx="105" cy="100" r="36" fill="rgba(255,116,114,0.18)" stroke="var(--present)" stroke-width="2"/>
+              <text x="105" y="44" text-anchor="middle"
+                style="font-family:'DM Sans',sans-serif;font-size:11px;fill:var(--present);letter-spacing:2px;font-weight:700">BAD GUY</text>
+              <text x="105" y="59" text-anchor="middle"
+                style="font-family:'JetBrains Mono',monospace;font-size:9px;fill:var(--text-tertiary);letter-spacing:1px">argue back or accept</text>
+              <!-- Argue-back arrow: from Bad Guy back down to Victim -->
+              <path d="M 82 134 Q 48 255 218 373" fill="none"
+                stroke="rgba(255,116,114,0.55)" stroke-width="1.4"
+                stroke-dasharray="5 4" marker-end="url(#arr-r)"/>
+              <text x="38" y="242" text-anchor="middle"
+                style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:rgba(255,116,114,0.60);letter-spacing:1px">argue</text>
+              <text x="38" y="254" text-anchor="middle"
+                style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:rgba(255,116,114,0.60);letter-spacing:1px">back</text>
+            </g>
+
+            <!-- STEP 4: Triangle extends to Good Guy: "take my side" moment -->
+            <g class="brain-layer" data-reveal="tri-extend" data-reveal-group="extend">
+              <path d="M 105 100 L 455 100" fill="none"
+                stroke="rgba(255,255,255,0.11)" stroke-width="1.5" stroke-dasharray="8 6"/>
+              <path d="M 455 100 L 280 395" fill="none"
+                stroke="rgba(255,255,255,0.11)" stroke-width="1.5" stroke-dasharray="8 6"/>
+              <!-- "take my side" label on the top edge -->
+              <text x="280" y="80" text-anchor="middle"
+                style="font-family:'JetBrains Mono',monospace;font-size:9px;fill:rgba(255,255,255,0.35);letter-spacing:2px">TAKE MY SIDE</text>
+            </g>
+
+            <!-- STEP 5: Good Guy + recruitment arrow -->
+            <g class="brain-layer" data-reveal="tri-gg" data-reveal-group="goodguy">
+              <circle cx="455" cy="100" r="36" fill="rgba(60,220,168,0.18)" stroke="var(--future)" stroke-width="2"/>
+              <text x="455" y="44" text-anchor="middle"
+                style="font-family:'DM Sans',sans-serif;font-size:11px;fill:var(--future);letter-spacing:2px;font-weight:700">GOOD GUY</text>
+              <text x="455" y="59" text-anchor="middle"
+                style="font-family:'JetBrains Mono',monospace;font-size:9px;fill:var(--text-tertiary);letter-spacing:1px">validates the story</text>
+              <!-- Recruitment arrow: from Victim area up to Good Guy -->
+              <path d="M 314 376 Q 405 295 438 138" fill="none"
+                stroke="rgba(60,220,168,0.45)" stroke-width="1.4"
+                stroke-dasharray="6 4" marker-end="url(#arr-t)"/>
+              <text x="400" y="268" text-anchor="middle" transform="rotate(58,400,268)"
+                style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:rgba(60,220,168,0.55);letter-spacing:1px">seeks ally</text>
+            </g>
+
+            <!-- STEP 6: Rotation arrows + "still here" -->
+            <g class="brain-layer" data-reveal="tri-arrows" data-reveal-group="arrows">
+              <path d="M 148 88 Q 280 55 412 88" fill="none"
+                stroke="rgba(255,255,255,0.16)" stroke-width="1.1" marker-end="url(#arr-w)"/>
+              <text x="342" y="183" text-anchor="start"
+                style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:rgba(240,200,106,0.60);letter-spacing:1px">still here</text>
+              <path d="M 338 181 L 322 193" fill="none" stroke="rgba(240,200,106,0.45)" stroke-width="0.8"/>
+            </g>
+          </svg>
+        </div>
+
+        <div class="tri-info-cards">
+          <div class="tri-info-card c-gold" data-reveal="info-problem" data-reveal-group="problem">
+            <div class="tri-info-title">THE PROBLEM</div>
+            <div class="tri-info-sub">Skills, resolve, or knowledge are missing.</div>
+            <div class="tri-info-desc">Someone encounters a problem they cannot or will not address directly. Any one of the three is enough. It can be as small as a dirty coffee mug. Without the skill, resolve, or knowledge to deal with it, the triangle begins.</div>
+          </div>
+          <div class="tri-info-card c-past" data-reveal="info-v" data-reveal-group="victim">
+            <div class="tri-info-step">STEP 1: TWO PEOPLE</div>
+            <div class="tri-info-title">VICTIM assigns blame</div>
+            <div class="tri-info-sub">Creates a Bad Guy. Casts them without their knowledge.</div>
+            <div class="tri-info-desc">The Bad Guy did not apply for the role. They may have no idea they are in it. The triangle is still just two people at this point.</div>
+          </div>
+          <div class="tri-info-card c-present" data-reveal="info-bg" data-reveal-group="badguy">
+            <div class="tri-info-step">STEP 2: THE CHOICE POINT</div>
+            <div class="tri-info-title">BAD GUY argues back or accepts</div>
+            <div class="tri-info-sub">Argue back is a swap request, not a defence.</div>
+            <div class="tri-info-desc">Argue back means "no, YOU are the problem" which requests the Victim position and puts the original Victim in the Bad Guy spot. Both are now competing to not own the problem. Accept makes them the Good Guy briefly, usually to manage the situation rather than solve it.</div>
+          </div>
+          <div class="tri-info-card c-future" data-reveal="info-gg" data-reveal-group="goodguy">
+            <div class="tri-info-step">STEP 3: THE TRIANGLE FORMS</div>
+            <div class="tri-info-title">GOOD GUY recruited to take a side</div>
+            <div class="tri-info-sub">Agree = Good Guy. Refuse = new Bad Guy. No neutral position.</div>
+            <div class="tri-info-desc">This is how drama spreads. Every new person is offered the same binary. Agree with the story and you are in. Question it and you are the next Bad Guy. The triangle grows by recruiting sides.</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildIndexCardSlide(slide) {
+  let ph = '';
+  slide.pairs.forEach((p, pi) => {
+    ph += `<div class="index-pair-row" data-reveal="pair-${pi}">
+      <div class="index-pair-cell">${p[0]}</div>
+      <div class="index-pair-cell">${p[1]}</div>
+    </div>`;
+  });
+  return `
+    <div class="index-slide-content">
+      <div class="index-headline" data-reveal="headline">${slide.title}</div>
+      <div class="slide-header" data-reveal="header" style="margin-bottom:16px">
+        <div class="slide-number">SUMMARY /</div>
+        <div class="slide-subtitle" style="color:var(--gold)">Drama to Empowerment</div>
+        <div class="slide-subtitle" style="margin-top:4px">Same position. Different question. Different result.</div>
+      </div>
+      <div class="index-box">
+        <div class="index-box-header" data-reveal="box-header">
+          <div class="index-col-label">DRAMA TRIANGLE</div>
+          <div class="index-col-label">EMPOWERMENT TRIANGLE</div>
+        </div>
+        ${ph}
+      </div>
+      <div class="index-control-label" data-reveal="control-label">
+        <div class="index-control-line"></div>
+        <span>THE PROBLEM</span>
+        <div class="index-control-line"></div>
+      </div>
+      <div class="index-footer-note" data-reveal="footer-note">${slide.closingLine}</div>
+    </div>`;
+}
+
+function buildNavDots(count) {
+  const c = document.getElementById('nav-dots'); c.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const d = document.createElement('div');
+    d.className = 'nav-dot' + (i===0?' active':'');
+    d.addEventListener('click', () => goToSlide(i));
+    c.appendChild(d);
+  }
+}
+function updateNavDots() {
+  document.querySelectorAll('.nav-dot').forEach((d,i) => d.classList.toggle('active', i===currentSlide));
+}
+
+function goToSlide(index) {
+  if (!currentDeck || index<0 || index>=currentDeck.slides.length) return;
+  currentSlide = index; revealStep = 0;
+  document.getElementById('slide-track').style.transform = `translateX(-${index*100}vw)`;
+  updateNavDots();
+  const slide = document.getElementById('slide-track').children[index];
+  slide.querySelectorAll('[data-reveal]').forEach(el => el.classList.remove('visible'));
+  setTimeout(() => revealCurrentSlide(), 200);
+}
+function nextSlide() { goToSlide(currentSlide+1); }
+function prevSlide() { goToSlide(currentSlide-1); }
+
+function revealCurrentSlide() {
+  const slide = document.getElementById('slide-track').children[currentSlide];
+  const els = slide.querySelectorAll('[data-reveal]');
+  const steps = []; const grouped = new Set();
+  els.forEach(el => {
+    const group = el.getAttribute('data-reveal-group');
+    if (group) {
+      if (!grouped.has(group)) {
+        grouped.add(group);
+        steps.push(Array.from(slide.querySelectorAll(`[data-reveal-group="${group}"]`)));
+      }
+    } else { steps.push([el]); }
+  });
+  slide._revealSteps = steps;
+  totalSteps = steps.length; revealStep = 0;
+  if (totalSteps>0) document.getElementById('tap-hint').classList.add('visible');
+  revealNext();
+}
+
+function revealNext() {
+  const slide = document.getElementById('slide-track').children[currentSlide];
+  const steps = slide._revealSteps;
+  if (!steps || revealStep >= steps.length) {
+    document.getElementById('tap-hint').classList.remove('visible'); return false;
+  }
+  steps[revealStep].forEach(el => el.classList.add('visible'));
+  revealStep++;
+  if (revealStep >= steps.length) document.getElementById('tap-hint').classList.remove('visible');
+  return true;
+}
+
+function revealAll() {
+  document.getElementById('slide-track').children[currentSlide]
+    .querySelectorAll('[data-reveal]').forEach(el => el.classList.add('visible'));
+  revealStep = totalSteps;
+  document.getElementById('tap-hint').classList.remove('visible');
+}
+
+function resetCurrentSlide() {
+  document.getElementById('slide-track').children[currentSlide]
+    .querySelectorAll('[data-reveal]').forEach(el => el.classList.remove('visible'));
+  revealStep = 0;
+  document.getElementById('tap-hint').classList.add('visible');
+  setTimeout(() => revealCurrentSlide(), 200);
+}
+
+document.getElementById('presentation').addEventListener('click', (e) => {
+  if (e.target.closest('.nav-bar') || e.target.closest('.tap-hint')) return;
+  if (revealStep >= totalSteps) nextSlide(); else revealNext();
+});
+
+let touchStartX=0, touchStartY=0, isSwiping=false;
+document.getElementById('presentation').addEventListener('touchstart', (e) => {
+  if (e.target.closest('.nav-bar')) return;
+  touchStartX=e.touches[0].clientX; touchStartY=e.touches[0].clientY; isSwiping=false;
+}, {passive:true});
+document.getElementById('presentation').addEventListener('touchmove', (e) => {
+  const dx=Math.abs(e.touches[0].clientX-touchStartX), dy=Math.abs(e.touches[0].clientY-touchStartY);
+  if (dx>30&&dx>dy) isSwiping=true;
+}, {passive:true});
+document.getElementById('presentation').addEventListener('touchend', (e) => {
+  if (!isSwiping || e.target.closest('.nav-bar')) return;
+  const dx=e.changedTouches[0].clientX-touchStartX;
+  if (dx<-50) nextSlide(); else if (dx>50) prevSlide();
+}, {passive:true});
+
+document.addEventListener('keydown', (e) => {
+  if (!currentDeck) return;
+  switch(e.key) {
+    case 'ArrowRight': case ' ': e.preventDefault();
+      if (revealStep>=totalSteps) nextSlide(); else revealNext(); break;
+    case 'ArrowLeft': e.preventDefault(); prevSlide(); break;
+    case 'ArrowDown': e.preventDefault(); revealNext(); break;
+    case 'ArrowUp': e.preventDefault(); resetCurrentSlide(); break;
+    case 'Escape': e.preventDefault(); backToIndex(); break;
+    case 'r': e.preventDefault(); resetCurrentSlide(); break;
+    case 'a': e.preventDefault(); revealAll(); break;
+  }
+});
+
+// SUMMARY: jump to last slide
+document.getElementById('btn-index').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (currentDeck) goToSlide(currentDeck.slides.length - 1);
+});
+// RESTART: go back to slide 0
+document.getElementById('btn-reset').addEventListener('click', (e) => {
+  e.stopPropagation();
+  goToSlide(0);
+});
+
+buildIndex();
+</script>
+</body>
+</html>

@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkFit Tools: Perceptual Positions</title>
+<meta name="description" content="An interactive session tool mapping the three perceptual positions. By Rob Maisey, WorkFit.">
+<meta name="author" content="Rob Maisey, ShareZen Consulting">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0e0e10; --surface: #18181b; --surface-hover: #1f1f23; --border: #303038;
+  --text-primary: #f2f2f4; --text-secondary: #c8c8d0; --text-tertiary: #7a7a88;
+  --past: #c0b4ff; --past-bg: rgba(192,180,255,0.20); --past-border: rgba(192,180,255,0.45);
+  --present: #ff7472; --present-bg: rgba(255,116,114,0.20); --present-border: rgba(255,116,114,0.45);
+  --future: #3cdca8; --future-bg: rgba(60,220,168,0.20); --future-border: rgba(60,220,168,0.45);
+  --gold: #f0c86a; --gold-bg: rgba(240,200,106,0.20); --gold-border: rgba(240,200,106,0.45);
+  --accent: #ff7472;
+}
+
+html, body { background: var(--bg); color: var(--text-primary); font-family: 'DM Sans', sans-serif;
+  overflow: hidden; height: 100%; width: 100%; user-select: none; -webkit-user-select: none; cursor: default; }
+
+#index-screen { position: fixed; inset: 0; background: var(--bg); z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px; transition: opacity 0.4s ease, transform 0.4s ease; }
+#index-screen.hidden { opacity: 0; transform: scale(0.96); pointer-events: none; }
+.index-title { font-size: clamp(13px,2vw,16px); font-weight: 600; letter-spacing: 4px;
+  color: var(--text-tertiary); margin-bottom: 40px; text-transform: uppercase; }
+.index-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,300px));
+  gap: 16px; max-width: 960px; width: 100%; justify-content: center; }
+.index-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 28px 24px; cursor: pointer; transition: all 0.25s ease; position: relative; overflow: hidden; }
+.index-card:hover { background: var(--surface-hover); border-color: var(--accent); transform: translateY(-2px); }
+.index-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background: var(--accent); opacity:0; transition: opacity 0.25s; }
+.index-card:hover::before { opacity:1; }
+.index-card-number { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-tertiary); margin-bottom:12px; letter-spacing:1px; }
+.index-card-title { font-size:20px; font-weight:600; color:var(--text-primary); margin-bottom:6px; }
+.index-card-sub { font-size:14px; color:var(--text-secondary); }
+.index-card-count { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-tertiary); margin-top:16px; }
+
+#presentation { position: fixed; inset: 0; display: none; }
+#presentation.active { display: block; }
+.slide-track { display: flex; height: 100vh; transition: transform 0.45s cubic-bezier(0.25,0.1,0.25,1); }
+.slide { min-width: 100vw; height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: clamp(16px,3vw,32px) clamp(16px,4vw,48px) 80px; position: relative; }
+
+.slide-header { text-align: center; margin-bottom: clamp(14px,2.5vh,26px);
+  opacity:0; transform:translateY(10px); transition: all 0.5s ease; }
+.slide-header.visible { opacity:1; transform:translateY(0); }
+.slide-number { font-family:'JetBrains Mono',monospace; font-size:clamp(11px,1.5vw,14px);
+  color:var(--text-tertiary); letter-spacing:2px; margin-bottom:4px; }
+.slide-title { font-size:clamp(22px,4vw,32px); font-weight:700; letter-spacing:3px; color:var(--text-primary); }
+.slide-subtitle { font-size:clamp(13px,1.8vw,16px); color:var(--text-secondary); margin-top:4px; }
+.slide-tagline { font-size:clamp(12px,1.6vw,15px); font-style:italic; color:var(--text-tertiary); margin-top:8px; }
+
+.grid-table { width:100%; max-width:1100px; flex:1; display:flex; flex-direction:column; justify-content:center; }
+.col-headers { display:grid; gap:clamp(4px,1vw,8px); margin-bottom:clamp(4px,0.8vh,8px);
+  opacity:0; transform:translateY(8px); transition: all 0.4s ease; }
+.col-headers.visible { opacity:1; transform:translateY(0); }
+.col-header { padding:clamp(10px,1.5vh,16px) clamp(8px,1vw,16px); border-radius:6px;
+  font-size:clamp(12px,1.6vw,16px); font-weight:700; letter-spacing:clamp(1px,0.2vw,2px); text-align:center; }
+.col-header.theme { background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-secondary); }
+.col-header.past { background:var(--past-bg); border:1px solid var(--past-border); color:var(--past); box-shadow:0 2px 14px rgba(192,180,255,0.14); }
+.col-header.present { background:var(--present-bg); border:1px solid var(--present-border); color:var(--present); box-shadow:0 2px 14px rgba(255,116,114,0.14); }
+.col-header.future { background:var(--future-bg); border:1px solid var(--future-border); color:var(--future); box-shadow:0 2px 14px rgba(60,220,168,0.14); }
+
+.data-row { display:grid; gap:clamp(4px,1vw,8px); margin-bottom:clamp(3px,0.6vh,6px);
+  opacity:0; transform:translateY(12px); transition: all 0.45s ease; }
+.data-row.visible { opacity:1; transform:translateY(0); }
+.cell { padding:clamp(9px,1.4vh,16px) clamp(6px,1vw,16px); border-radius:5px;
+  font-size:clamp(12px,1.7vw,16px); font-weight:600; text-align:center; line-height:1.4; }
+.cell.theme { background:rgba(255,255,255,0.04); color:var(--text-secondary); font-size:clamp(11px,1.3vw,14px); letter-spacing:0.5px; }
+.cell.past { background:var(--past-bg); color:var(--past); }
+.cell.present { background:var(--present-bg); color:var(--present); }
+.cell.future { background:var(--future-bg); color:var(--future); }
+.cell.gold { background:var(--gold-bg); color:var(--gold); }
+
+.footer-row { display:grid; gap:clamp(4px,1vw,8px); margin-top:clamp(10px,1.8vh,18px);
+  opacity:0; transform:translateY(8px); transition: all 0.4s ease; }
+.footer-row.visible { opacity:1; transform:translateY(0); }
+.footer-cell { font-family:'JetBrains Mono',monospace; font-size:clamp(9px,1.2vw,13px);
+  font-weight:600; letter-spacing:1px; text-align:center; padding:6px; }
+.footer-cell.no-control { color:var(--text-tertiary); }
+.footer-cell.see-index { color:var(--present); opacity:0.7; }
+.footer-cell.gold-note { color:var(--gold); opacity:0.8; }
+
+.tri-layout { display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; max-width:1100px; flex:1; }
+.tri-views { display:flex; align-items:center; justify-content:center; width:100%; gap:28px; }
+.tri-svg-wrap { flex:0 0 clamp(260px,46vw,540px); height:clamp(220px,42vw,460px); }
+.brain-layer { opacity:0; transition: opacity 0.75s ease; }
+.brain-layer.visible { opacity:1; }
+.tri-info-cards { flex:1; display:flex; flex-direction:column; justify-content:center; gap:10px; max-width:360px; min-width:0; }
+.tri-info-card { padding:clamp(10px,1.6vh,16px) clamp(10px,1.4vw,20px); border-radius:8px;
+  background:var(--surface); border:1px solid var(--border); opacity:0; transform:translateX(20px); transition: all 0.6s ease; }
+.tri-info-card.visible { opacity:1; transform:translateX(0); }
+.tri-info-card.c-past { border-left:3px solid var(--past); }
+.tri-info-card.c-present { border-left:3px solid var(--present); }
+.tri-info-card.c-future { border-left:3px solid var(--future); }
+.tri-info-title { font-size:clamp(11px,1.4vw,14px); font-weight:700; letter-spacing:1px; margin-bottom:2px; }
+.tri-info-card.c-past .tri-info-title { color:var(--past); }
+.tri-info-card.c-present .tri-info-title { color:var(--present); }
+.tri-info-card.c-future .tri-info-title { color:var(--future); }
+.tri-info-step { font-family:'JetBrains Mono',monospace; font-size:clamp(9px,1vw,11px); color:var(--text-tertiary); margin-bottom:3px; letter-spacing:1px; }
+.tri-info-sub { font-size:clamp(11px,1.3vw,13px); font-weight:600; color:var(--text-secondary); margin-bottom:3px; }
+.tri-info-desc { font-size:clamp(10px,1.2vw,12px); color:var(--text-tertiary); line-height:1.5; }
+
+.index-slide-content { max-width:540px; width:100%; }
+.index-headline { font-size:clamp(24px,4vw,38px); font-weight:700; letter-spacing:3px;
+  text-align:center; color:var(--text-primary); margin-bottom:8px;
+  opacity:0; transform:translateY(10px); transition: all 0.5s ease; }
+.index-headline.visible { opacity:1; transform:translateY(0); }
+.index-box { margin-top:24px; border:1px solid var(--future-border); border-radius:8px;
+  padding:clamp(14px,2.5vw,24px) clamp(12px,2vw,22px); background:var(--future-bg); }
+.index-box-header { display:grid; grid-template-columns:1fr 1fr; gap:10px;
+  margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid rgba(60,220,168,0.20);
+  opacity:0; transition: all 0.4s ease; }
+.index-box-header.visible { opacity:1; }
+.index-col-label { font-size:clamp(11px,1.4vw,14px); font-weight:600; letter-spacing:1.5px; color:var(--future); opacity:0.7; text-align:center; }
+.index-pair-row { display:grid; grid-template-columns:1fr 1fr; gap:clamp(6px,1vw,10px);
+  margin-bottom:6px; opacity:0; transform:translateY(8px); transition: all 0.4s ease; }
+.index-pair-row.visible { opacity:1; transform:translateY(0); }
+.index-pair-cell { background:rgba(60,220,168,0.12); border-radius:5px; padding:clamp(9px,1.4vh,14px);
+  text-align:center; font-size:clamp(12px,1.7vw,16px); font-weight:600; color:var(--future); }
+.index-control-label { display:flex; align-items:center; justify-content:center; gap:16px; margin-top:18px; opacity:0; transition: all 0.4s ease; }
+.index-control-label.visible { opacity:1; }
+.index-control-label span { font-size:clamp(12px,1.6vw,16px); font-weight:600; letter-spacing:2px; color:var(--text-secondary); }
+.index-control-line { width:40px; height:1px; background:var(--text-tertiary); }
+.index-footer-note { text-align:center; font-size:clamp(12px,1.4vw,14px); color:var(--text-tertiary); margin-top:18px; line-height:1.6; opacity:0; transition: all 0.4s ease; }
+.index-footer-note.visible { opacity:1; }
+
+@media (max-width:600px) {
+  .tri-views { flex-direction:column; gap:14px; overflow-y:auto; }
+  .tri-svg-wrap { flex:none; width:100%; height:clamp(200px,60vw,300px); }
+  .tri-info-cards { max-width:100%; width:100%; }
+  .tri-info-card { transform:translateX(0) translateY(14px); }
+  .tri-info-card.visible { transform:translateX(0) translateY(0); }
+  .data-row { display:flex; flex-direction:column; gap:0; margin-bottom:10px;
+    border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .cell.theme { font-size:11px; letter-spacing:1.5px; padding:8px 12px;
+    text-align:left; border-radius:0; border-bottom:1px solid var(--border); }
+  .cell.past,.cell.present,.cell.future,.cell.gold { display:flex; align-items:center;
+    gap:10px; padding:10px 14px; border-radius:0; font-size:14px; text-align:left; }
+}
+
+.nav-bar { position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:clamp(10px,2vw,18px); padding:10px clamp(12px,2vw,24px);
+  background:var(--surface); border:1px solid var(--border); border-radius:40px;
+  z-index:50; opacity:0; transition: opacity 0.3s ease; max-width:calc(100vw - 32px); }
+.nav-bar.visible { opacity:1; }
+.nav-dot { width:8px; height:8px; border-radius:50%; background:var(--text-tertiary);
+  cursor:pointer; transition: all 0.25s ease; flex-shrink:0; }
+.nav-dot.active { background:var(--accent); transform:scale(1.3); }
+.nav-btn { font-family:'JetBrains Mono',monospace; font-size:clamp(10px,1.3vw,12px);
+  letter-spacing:1px; color:var(--text-secondary); background:none;
+  border:1px solid var(--border); border-radius:20px; padding:6px clamp(10px,1.5vw,18px);
+  cursor:pointer; transition: all 0.2s ease; white-space:nowrap; }
+.nav-btn:hover { color:var(--text-primary); border-color:var(--text-secondary); }
+.tap-hint { position:fixed; bottom:76px; left:50%; transform:translateX(-50%);
+  font-family:'JetBrains Mono',monospace; font-size:clamp(10px,1.3vw,12px);
+  color:var(--text-tertiary); letter-spacing:1.5px; opacity:0; transition: opacity 0.4s ease; z-index:50; white-space:nowrap; }
+.tap-hint.visible { opacity:1; }
+.brand-footer { position:fixed; bottom:10px; right:16px; font-family:'JetBrains Mono',monospace;
+  font-size:clamp(10px,1.2vw,12px); letter-spacing:1px; color:var(--text-tertiary); z-index:40; display:none; }
+.brand-footer.visible { display:block; }
+.brand-footer a { color:var(--text-tertiary); text-decoration:none; transition: color 0.2s; }
+.brand-footer a:hover { color:var(--text-secondary); }
+</style>
+</head>
+<body>
+<!-- WorkFit site navigation + end CTA (added when this tool was pulled into the main WorkFit site) -->
+<div id="wf-nav">
+  <button id="wf-nav-toggle" type="button" aria-expanded="false" aria-controls="wf-nav-menu">
+    <img src="../../assets/images/logo.jpg" alt="" width="22" height="22">
+    <span>WorkFit site</span>
+    <span id="wf-caret" aria-hidden="true">&#9662;</span>
+  </button>
+  <nav id="wf-nav-menu" aria-label="WorkFit site">
+    <a href="../../">Home</a>
+    <a href="../../workfit/">WorkFit</a>
+    <a href="../../pricing/">Pricing</a>
+    <a href="../../tools/">Tools</a>
+    <a href="../../contact/">Contact</a>
+    <a class="wf-book" href="https://meetings.hubspot.com/rob465" target="_blank" rel="noopener">Book a Meeting</a>
+  </nav>
+</div>
+
+<div id="wf-cta" role="region" aria-label="Next steps">
+  <span class="wf-cta-label">Ready to go further?</span>
+  <a class="wf-cta-ghost" href="../../workfit/">See how WorkFit works</a>
+  <a class="wf-cta-book" href="https://meetings.hubspot.com/rob465" target="_blank" rel="noopener">Book a Meeting</a>
+</div>
+
+<style>
+  #wf-nav { position: fixed; top: 12px; left: 12px; z-index: 1000; font-family: 'DM Sans', system-ui, sans-serif; }
+  #wf-nav-toggle { display:flex; align-items:center; gap:8px; cursor:pointer;
+    background:#0c1340; color:#fff; border:1px solid rgba(255,255,255,0.22);
+    border-radius:30px; padding:7px 14px; font-size:13px; font-weight:700; line-height:1; }
+  #wf-nav-toggle:hover { background:#161d52; }
+  #wf-nav-toggle img { border-radius:50%; display:block; }
+  #wf-caret { color:#f5c400; font-size:11px; }
+  #wf-nav-menu { display:none; flex-direction:column; margin-top:8px; min-width:210px;
+    background:#0c1340; border:1px solid rgba(255,255,255,0.22); border-radius:12px;
+    padding:8px; box-shadow:0 14px 34px rgba(0,0,0,0.5); }
+  #wf-nav.wf-open #wf-nav-menu { display:flex; }
+  #wf-nav-menu a { color:#e9ecff; text-decoration:none; font-size:15px; font-weight:600;
+    padding:10px 12px; border-radius:8px; cursor:pointer; }
+  #wf-nav-menu a:hover { background:rgba(255,255,255,0.10); color:#fff; }
+  #wf-nav-menu a.wf-book { background:#f5c400; color:#0c1340; text-align:center; font-weight:800; margin-top:6px; }
+  #wf-nav-menu a.wf-book:hover { background:#d9ab00; }
+
+  /* End-of-tool CTA: sits in its own band ABOVE the SUMMARY/dots/RESTART bar */
+  #wf-cta { display:none; position:fixed; left:50%; bottom:76px; transform:translateX(-50%);
+    z-index:60; align-items:center; gap:12px; flex-wrap:wrap; justify-content:center;
+    background:rgba(12,19,64,0.94); border:1px solid rgba(255,255,255,0.20); border-radius:40px;
+    padding:8px 12px 8px 18px; max-width:calc(100vw - 32px);
+    font-family:'DM Sans', system-ui, sans-serif; box-shadow:0 14px 34px rgba(0,0,0,0.55); }
+  #wf-cta.wf-show { display:flex; }
+  .wf-cta-label { color:#fff; font-size:14px; font-weight:700; }
+  #wf-cta a { text-decoration:none; font-size:13px; font-weight:700; border-radius:30px; padding:8px 16px; white-space:nowrap; cursor:pointer; }
+  .wf-cta-ghost { color:#fff; border:1px solid rgba(255,255,255,0.45); }
+  .wf-cta-ghost:hover { background:rgba(255,255,255,0.12); }
+  .wf-cta-book { background:#f5c400; color:#0c1340; }
+  .wf-cta-book:hover { background:#d9ab00; }
+
+  /* On the final slide: lift the slide content so the CTA never covers it,
+     and hide the tool's "tap to reveal" hint so nothing stacks on the CTA. */
+  #presentation .slide:last-child { padding-bottom: clamp(150px, 19vh, 180px); }
+  body.wf-final #tap-hint { display:none !important; }
+
+  @media (max-width:600px){
+    .wf-cta-label { width:100%; text-align:center; }
+    #wf-cta { bottom:72px; }
+    #presentation .slide:last-child { padding-bottom: clamp(170px, 26vh, 210px); }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var nav=document.getElementById('wf-nav'), btn=document.getElementById('wf-nav-toggle');
+  if(btn){
+    btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation();
+      var open=nav.classList.toggle('wf-open'); btn.setAttribute('aria-expanded', open?'true':'false'); });
+    document.addEventListener('click', function(e){ if(!nav.contains(e.target)) nav.classList.remove('wf-open'); });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') nav.classList.remove('wf-open'); });
+  }
+
+  // Show the closing CTA only on the FINAL slide of a deck.
+  // The tools mark the current slide by adding .active to its nav dot; the last
+  // slide therefore = the last .nav-dot being .active while #presentation is active.
+  var cta=document.getElementById('wf-cta');
+  var pres=document.getElementById('presentation');
+  var dotsWrap=document.getElementById('nav-dots');
+  function onFinalSlide(){
+    if(!pres || !pres.classList.contains('active')) return false;
+    var dots = dotsWrap ? dotsWrap.querySelectorAll('.nav-dot') : [];
+    return dots.length>0 && dots[dots.length-1].classList.contains('active');
+  }
+  function update(){
+    var show = onFinalSlide();
+    if(cta) cta.classList.toggle('wf-show', show);
+    document.body.classList.toggle('wf-final', show);
+  }
+  if(pres) new MutationObserver(update).observe(pres,{attributes:true,attributeFilter:['class']});
+  if(dotsWrap) new MutationObserver(update).observe(dotsWrap,{attributes:true,childList:true,subtree:true,attributeFilter:['class']});
+  document.addEventListener('click', function(){ setTimeout(update,30); }, true);
+  document.addEventListener('keydown', function(){ setTimeout(update,30); }, true);
+  document.addEventListener('touchend', function(){ setTimeout(update,60); }, true);
+  update();
+});
+</script>
+
+<div id="index-screen">
+  <div class="index-title">WorkFit Tools</div>
+  <div class="index-grid" id="index-grid"></div>
+</div>
+
+<div id="presentation">
+  <div class="slide-track" id="slide-track"></div>
+  <div class="tap-hint" id="tap-hint">TAP TO REVEAL</div>
+  <div class="nav-bar" id="nav-bar">
+    <button class="nav-btn" id="btn-index">SUMMARY</button>
+    <div id="nav-dots" style="display:flex;gap:8px;align-items:center;"></div>
+    <button class="nav-btn" id="btn-reset">RESTART</button>
+  </div>
+</div>
+<div class="brand-footer" id="brand-footer">Rob Maisey &middot; <a href="../../workfit/">WorkFit</a></div>
+
+<script>
+const DECKS = [
+  {
+    id: 'perceptual-positions',
+    title: 'Perceptual Positions',
+    subtitle: 'Two people, one situation, three ways of seeing it.',
+    slides: [
+
+      {
+        number: '',
+        title: 'PERCEPTUAL POSITIONS',
+        subtitle: 'Two people can be in the same situation and see something completely different',
+        tagline: 'The hard part is not understanding that other perspectives exist. It is actually stepping into one.',
+        type: 'positions-diagram',
+      },
+
+      {
+        number: '1',
+        title: 'THE POSITIONS',
+        subtitle: 'The same situation. Three completely different experiences of it.',
+        tagline: 'You are always in one of these. The one you are in shapes everything you see.',
+        cols: ['MY PERSPECTIVE', 'MY PERSPECTIVE', 'OUTSIDE PERSPECTIVE'],
+        rows: [
+          { theme: 'WHERE YOU ARE',   c1: 'Inside your own experience',                    c2: 'Inside their experience. Temporarily seeing the situation as they see it.',  c3: 'Outside the interaction. No stake in either side.' },
+          { theme: 'WHAT YOU NOTICE', c1: 'I feel this. I need this. This is what happened to me.',  c2: 'I feel this (as them). I need this (as them). This is what happened to me (as them).', c3: 'Two people. Two different experiences of the same event. One unresolved situation.' },
+          { theme: 'IN CONFLICT',     c1: 'Where almost everyone stays, almost all the time.',        c2: 'The position most people skip. You are not agreeing. You are experiencing how it feels to be them.', c3: 'Where neither person in the conflict can get to on their own.' },
+          { theme: 'ACCESS',          c1: 'You are already in it. No effort required.',    c2: 'You have to choose it. It does not happen naturally.',                  c3: 'Only available once you have genuinely left your own perspective.' },
+        ]
+      },
+
+      {
+        number: '2',
+        title: 'THE COST',
+        subtitle: 'What staying in one position too long does',
+        tagline: 'The position you stay in longest determines what feels true.',
+        cols: ['MY PERSPECTIVE', 'MY PERSPECTIVE', 'OUTSIDE PERSPECTIVE'],
+        rows: [
+          { theme: 'TOO LONG',       c1: 'Your version hardens into the only version. Confirmation bias runs automatically.',  c2: 'You lose track of your own position. Understanding without staying grounded.',  c3: 'You see the pattern but lose the urgency. Analysis without commitment.' },
+          { theme: 'THE BENEFIT',    c1: 'Clarity about what you actually want and need.',      c2: 'You understand why they are doing what they are doing.',                 c3: 'You can see what neither person can see from inside the conflict.' },
+          { theme: 'IN CONFLICT',    c1: 'Every new thing they do confirms what you already decided.', c2: 'The more you understand their position, the less personal the conflict feels.', c3: 'From here it has a logic. Two people defending positions, not a character flaw.' },
+          { theme: 'THE TRAP',       c1: 'Feels like clarity. Is actually a closed loop.',     c2: 'Feels like giving in. Is not.',                                         c3: 'Feels like detachment. Gets you closest to a real resolution.' },
+        ]
+      },
+
+      {
+        number: '3',
+        title: 'THE SHIFT',
+        subtitle: 'How to move between positions',
+        tagline: 'The second position is the hardest and the most useful. Most people skip it.',
+        cols: ['MY PERSPECTIVE', 'MY PERSPECTIVE', 'OUTSIDE PERSPECTIVE'],
+        rows: [
+          { theme: 'THE SEQUENCE',   c1: 'Start here. Say out loud what you feel and need.',  c2: 'Step in fully. Speak as them. Use I not they. If you are still saying they think, you have not stepped in yet.', c3: 'Step back. Watch both people as if the situation belongs to someone else entirely.' },
+          { theme: 'THE INSIGHT',    c1: 'I am experiencing this. It is real. It is not the complete picture.', c2: 'I am experiencing this (as them). It is real from here. It looks completely different from here.', c3: 'Both experiences are real. Both are incomplete. Neither person has the full picture from inside it.' },
+          { theme: 'THE QUESTION',   c1: 'What do I actually need here?',                    c2: 'What do I need from here? (speaking as them)',                          c3: 'What does an uninvolved person see that neither person inside it can see?' },
+          { theme: 'THE RULE',       c1: 'Never skip this. It anchors everything.',           c2: 'You are not them. You are experiencing how it feels to be them. That is different.', c3: 'You cannot get here while you are still defending your own position.' },
+        ]
+      },
+
+      {
+        number: 'SUMMARY',
+        title: 'THREE PERSPECTIVES',
+        type: 'index-card',
+        closingLine: 'Perspective is not truth. It is a position. Positions can be moved.',
+        pairs: [
+          ['LOCKED',       'MOBILE'],
+          ['MY VERSION',   'THE FULL PICTURE'],
+          ['CONFIRMED',    'CURIOUS'],
+          ['REACTION',     'RESPONSE'],
+          ['DEFENDING',    'UNDERSTANDING'],
+          ['ONE POSITION', 'THREE POSITIONS'],
+        ]
+      }
+    ]
+  },
+];
+
+let currentDeck = null, currentSlide = 0, revealStep = 0, totalSteps = 0;
+
+function buildIndex() {
+  const grid = document.getElementById('index-grid');
+  grid.innerHTML = '';
+  DECKS.forEach((deck, i) => {
+    const card = document.createElement('div');
+    card.className = 'index-card';
+    card.innerHTML = `
+      <div class="index-card-number">${String(i+1).padStart(2,'0')}</div>
+      <div class="index-card-title">${deck.title}</div>
+      <div class="index-card-sub">${deck.subtitle}</div>
+      <div class="index-card-count">${deck.slides.length} slides</div>`;
+    card.addEventListener('click', () => openDeck(deck));
+    grid.appendChild(card);
+  });
+}
+
+function openDeck(deck) {
+  currentDeck = deck; currentSlide = 0; revealStep = 0;
+  buildSlides(deck);
+  document.getElementById('index-screen').classList.add('hidden');
+  document.getElementById('presentation').classList.add('active');
+  document.getElementById('brand-footer').classList.add('visible');
+  setTimeout(() => { document.getElementById('nav-bar').classList.add('visible'); revealCurrentSlide(); }, 100);
+}
+
+function backToIndex() {
+  document.getElementById('presentation').classList.remove('active');
+  document.getElementById('nav-bar').classList.remove('visible');
+  document.getElementById('tap-hint').classList.remove('visible');
+  document.getElementById('brand-footer').classList.remove('visible');
+  document.getElementById('index-screen').classList.remove('hidden');
+  currentDeck = null;
+}
+
+function buildSlides(deck) {
+  const track = document.getElementById('slide-track');
+  track.innerHTML = ''; track.style.transform = 'translateX(0)';
+  deck.slides.forEach((slide, si) => {
+    const el = document.createElement('div');
+    el.className = 'slide'; el.dataset.index = si;
+    if (slide.type === 'positions-diagram') el.innerHTML = buildPositionsDiagramSlide(slide);
+    else if (slide.type === 'index-card') el.innerHTML = buildIndexCardSlide(slide);
+    else el.innerHTML = buildGridSlide(slide);
+    track.appendChild(el);
+  });
+  buildNavDots(deck.slides.length);
+}
+
+function buildGridSlide(slide) {
+  const cols = slide.cols || ['PAST','PRESENT','FUTURE'];
+  const cc = ['present','past','future'];
+  const gc = `clamp(90px,15vw,180px) 1fr 1fr 1fr`;
+  let html = `
+    <div class="slide-header" data-reveal="header">
+      <div class="slide-number">${slide.number} /</div>
+      <div class="slide-title">${slide.title}</div>
+      <div class="slide-subtitle">${slide.subtitle}</div>
+      ${slide.tagline ? `<div class="slide-tagline">${slide.tagline}</div>` : ''}
+    </div>
+    <div class="grid-table">
+      <div class="col-headers" data-reveal="colheaders" style="grid-template-columns:${gc}">
+        <div class="col-header theme">THEME</div>
+        <div class="col-header ${cc[0]}">${cols[0]}<div style="font-size:clamp(8px,0.9vw,10px);font-weight:400;opacity:0.6;margin-top:2px;letter-spacing:0.5px">how I see it</div></div>
+        <div class="col-header ${cc[1]}">${cols[1]}<div style="font-size:clamp(8px,0.9vw,10px);font-weight:400;opacity:0.6;margin-top:2px;letter-spacing:0.5px">how they see it</div></div>
+        <div class="col-header ${cc[2]}">${cols[2]}<div style="font-size:clamp(8px,0.9vw,10px);font-weight:400;opacity:0.6;margin-top:2px;letter-spacing:0.5px">how an uninvolved person sees it</div></div>
+      </div>`;
+  slide.rows.forEach((row, ri) => {
+    const c1 = row.c1 !== undefined ? row.c1 : '';
+    const c2 = row.c2 !== undefined ? row.c2 : '';
+    const c3 = row.c3 !== undefined ? row.c3 : '';
+    html += `
+      <div class="data-row" data-reveal="row-${ri}" style="grid-template-columns:${gc}">
+        <div class="cell theme">${row.theme}</div>
+        <div class="cell ${cc[0]}">${c1}</div>
+        <div class="cell ${cc[1]}">${c2}</div>
+        <div class="cell ${cc[2]}">${c3}</div>
+      </div>`;
+  });
+  html += `
+      <div class="footer-row" data-reveal="footer" style="grid-template-columns:${gc}">
+        <div></div>
+        <div class="footer-cell see-index">HOW I SEE IT</div>
+        <div class="footer-cell no-control">HOW THEY SEE IT</div>
+        <div class="footer-cell gold-note">HOW AN UNINVOLVED PERSON SEES IT</div>
+      </div>
+    </div>`;
+  return html;
+}
+
+function buildPositionsDiagramSlide(slide) {
+  // SVG viewBox 0 0 560 490
+  // MY VIEW (present/coral) bottom-left:  (105, 390)
+  // THEIR VIEW (past/purple) bottom-right: (455, 390)
+  // THE VIEW (future/teal) top-centre:    (280, 95)
+  //
+  // Build: MY VIEW > THEIR VIEW + conflict exchange > triangle outline + THE VIEW > move arrows
+
+  return `
+    <div class="slide-header" data-reveal="header">
+      <div class="slide-title">${slide.title}</div>
+      <div class="slide-subtitle">${slide.subtitle}</div>
+      ${slide.tagline ? `<div class="slide-tagline">${slide.tagline}</div>` : ''}
+    </div>
+    <div class="tri-layout">
+      <div class="tri-views">
+        <div class="tri-svg-wrap">
+          <svg viewBox="0 0 560 490" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+            <defs>
+              <marker id="arr-w" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
+                <path d="M0,1 L6,3.5 L0,6 Z" fill="rgba(255,255,255,0.28)"/>
+              </marker>
+              <marker id="arr-coral" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
+                <path d="M0,1 L6,3.5 L0,6 Z" fill="rgba(255,116,114,0.65)"/>
+              </marker>
+              <marker id="arr-coral-r" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto-start-reverse">
+                <path d="M0,1 L6,3.5 L0,6 Z" fill="rgba(255,116,114,0.65)"/>
+              </marker>
+              <marker id="arr-teal" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
+                <path d="M0,1 L6,3.5 L0,6 Z" fill="rgba(60,220,168,0.65)"/>
+              </marker>
+            </defs>
+
+            <!-- STEP 1: MY VIEW: you start here, you are already in it -->
+            <g class="brain-layer" data-reveal="mv-node" data-reveal-group="myview">
+              <circle cx="105" cy="390" r="36" fill="rgba(255,116,114,0.18)" stroke="var(--present)" stroke-width="2"/>
+              <text x="105" y="447" text-anchor="middle"
+                style="font-family:'DM Sans',sans-serif;font-size:10px;fill:var(--present);letter-spacing:1px;font-weight:700">MY PERSPECTIVE</text>
+              <text x="105" y="461" text-anchor="middle"
+                style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:var(--text-tertiary);letter-spacing:1px">how I see it</text>
+            </g>
+
+            <!-- STEP 2: THEIR VIEW + conflict exchange arrow -->
+            <g class="brain-layer" data-reveal="tv-node" data-reveal-group="theirview">
+              <circle cx="455" cy="390" r="36" fill="rgba(192,180,255,0.18)" stroke="var(--past)" stroke-width="2"/>
+              <text x="455" y="447" text-anchor="middle"
+                style="font-family:'DM Sans',sans-serif;font-size:10px;fill:var(--past);letter-spacing:1px;font-weight:700">MY PERSPECTIVE</text>
+              <text x="455" y="461" text-anchor="middle"
+                style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:var(--text-tertiary);letter-spacing:1px">how they see it</text>
+              <!-- Conflict exchange: bidirectional arrow between the two positions -->
+              <path d="M 145 382 L 415 382" fill="none"
+                stroke="rgba(255,255,255,0.18)" stroke-width="1.2"
+                marker-start="url(#arr-coral-r)" marker-end="url(#arr-w)"/>
+              <text x="280" y="373" text-anchor="middle"
+                style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:rgba(255,255,255,0.30);letter-spacing:2px">THE CONFLICT</text>
+            </g>
+
+            <!-- STEP 3: Triangle outline + THE VIEW -->
+            <g class="brain-layer" data-reveal="ov-node" data-reveal-group="theview">
+              <!-- Triangle outline -->
+              <path d="M 105 390 L 455 390 L 280 95 Z" fill="rgba(255,255,255,0.015)"
+                stroke="rgba(255,255,255,0.11)" stroke-width="1.5" stroke-dasharray="8 6"/>
+              <!-- THE VIEW circle -->
+              <circle cx="280" cy="95" r="36" fill="rgba(60,220,168,0.18)" stroke="var(--future)" stroke-width="2"/>
+              <text x="280" y="38" text-anchor="middle"
+                style="font-family:'DM Sans',sans-serif;font-size:9px;fill:var(--future);letter-spacing:1px;font-weight:700">OUTSIDE PERSPECTIVE</text>
+              <text x="280" y="52" text-anchor="middle"
+                style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:var(--text-tertiary);letter-spacing:1px">how an uninvolved person sees it</text>
+            </g>
+
+            <!-- STEP 4: Move arrows: step out and step back to THE VIEW -->
+            <g class="brain-layer" data-reveal="move-arrows" data-reveal-group="arrows">
+              <!-- MY VIEW up to THE VIEW: "step out" -->
+              <path d="M 128 357 Q 170 210 258 120" fill="none"
+                stroke="rgba(255,116,114,0.50)" stroke-width="1.4"
+                stroke-dasharray="6 4" marker-end="url(#arr-coral)"/>
+              <text x="158" y="248" text-anchor="middle" transform="rotate(-62,158,248)"
+                style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:rgba(255,116,114,0.60);letter-spacing:1px">step out</text>
+              <!-- THEIR VIEW up to THE VIEW: "step back" -->
+              <path d="M 432 357 Q 390 210 302 120" fill="none"
+                stroke="rgba(192,180,255,0.50)" stroke-width="1.4"
+                stroke-dasharray="6 4" marker-end="url(#arr-teal)"/>
+              <text x="402" y="248" text-anchor="middle" transform="rotate(62,402,248)"
+                style="font-family:'JetBrains Mono',monospace;font-size:8px;fill:rgba(192,180,255,0.60);letter-spacing:1px">step back</text>
+            </g>
+          </svg>
+        </div>
+
+        <div class="tri-info-cards">
+          <div class="tri-info-card c-present" data-reveal="info-mv" data-reveal-group="myview">
+            <div class="tri-info-step">POSITION 1: HOW I SEE IT</div>
+            <div class="tri-info-title">MY PERSPECTIVE</div>
+            <div class="tri-info-sub">You are always here. It is your starting point.</div>
+            <div class="tri-info-desc">Your feelings, your needs, your version of what happened. In conflict this position hardens fast. The longer you stay, the more your version feels like the only version. It is real. It is not complete.</div>
+          </div>
+          <div class="tri-info-card c-past" data-reveal="info-tv" data-reveal-group="theirview">
+            <div class="tri-info-step">POSITION 2: HOW THEY SEE IT</div>
+            <div class="tri-info-title">MY PERSPECTIVE (AS THEM)</div>
+            <div class="tri-info-sub">How the situation looks from where they stand. Not how you see them.</div>
+            <div class="tri-info-desc">Their feelings, their needs, their version of what happened. You are not looking at them. You are temporarily seeing through their eyes. The more you understand their position, the less irrational it seems.</div>
+          </div>
+          <div class="tri-info-card c-future" data-reveal="info-ov" data-reveal-group="theview">
+            <div class="tri-info-step">POSITION 3: HOW AN UNINVOLVED PERSON SEES IT</div>
+            <div class="tri-info-title">OUTSIDE PERSPECTIVE</div>
+            <div class="tri-info-sub">No stake in either side. No version to defend. The full picture.</div>
+            <div class="tri-info-desc">From here the conflict is a pattern between two people in different positions. Neither is wrong. Both are incomplete. This is where movement becomes possible. Cannot be reached without genuinely leaving MY VIEW first.</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildIndexCardSlide(slide) {
+  let ph = '';
+  slide.pairs.forEach((p, pi) => {
+    ph += `<div class="index-pair-row" data-reveal="pair-${pi}">
+      <div class="index-pair-cell">${p[0]}</div>
+      <div class="index-pair-cell">${p[1]}</div>
+    </div>`;
+  });
+  return `
+    <div class="index-slide-content">
+      <div class="index-headline" data-reveal="headline">${slide.title}</div>
+      <div class="slide-header" data-reveal="header" style="margin-bottom:16px">
+        <div class="slide-number">SUMMARY /</div>
+        <div class="slide-subtitle" style="color:var(--future)">From one position to three</div>
+        <div class="slide-subtitle" style="margin-top:4px">The position you are in is not the only one available.</div>
+      </div>
+      <div class="index-box">
+        <div class="index-box-header" data-reveal="box-header">
+          <div class="index-col-label">ONE POSITION</div>
+          <div class="index-col-label">ALL THREE</div>
+        </div>
+        ${ph}
+      </div>
+      <div class="index-control-label" data-reveal="control-label">
+        <div class="index-control-line"></div>
+        <span>THE MOVE</span>
+        <div class="index-control-line"></div>
+      </div>
+      <div class="index-footer-note" data-reveal="footer-note">${slide.closingLine}</div>
+    </div>`;
+}
+
+function buildNavDots(count) {
+  const c = document.getElementById('nav-dots'); c.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const d = document.createElement('div');
+    d.className = 'nav-dot' + (i===0?' active':'');
+    d.addEventListener('click', () => goToSlide(i));
+    c.appendChild(d);
+  }
+}
+function updateNavDots() {
+  document.querySelectorAll('.nav-dot').forEach((d,i) => d.classList.toggle('active', i===currentSlide));
+}
+
+function goToSlide(index) {
+  if (!currentDeck || index<0 || index>=currentDeck.slides.length) return;
+  currentSlide = index; revealStep = 0;
+  document.getElementById('slide-track').style.transform = `translateX(-${index*100}vw)`;
+  updateNavDots();
+  const slide = document.getElementById('slide-track').children[index];
+  slide.querySelectorAll('[data-reveal]').forEach(el => el.classList.remove('visible'));
+  setTimeout(() => revealCurrentSlide(), 200);
+}
+function nextSlide() { goToSlide(currentSlide+1); }
+function prevSlide() { goToSlide(currentSlide-1); }
+
+function revealCurrentSlide() {
+  const slide = document.getElementById('slide-track').children[currentSlide];
+  const els = slide.querySelectorAll('[data-reveal]');
+  const steps = []; const grouped = new Set();
+  els.forEach(el => {
+    const group = el.getAttribute('data-reveal-group');
+    if (group) {
+      if (!grouped.has(group)) {
+        grouped.add(group);
+        steps.push(Array.from(slide.querySelectorAll(`[data-reveal-group="${group}"]`)));
+      }
+    } else { steps.push([el]); }
+  });
+  slide._revealSteps = steps;
+  totalSteps = steps.length; revealStep = 0;
+  if (totalSteps>0) document.getElementById('tap-hint').classList.add('visible');
+  revealNext();
+}
+
+function revealNext() {
+  const slide = document.getElementById('slide-track').children[currentSlide];
+  const steps = slide._revealSteps;
+  if (!steps || revealStep >= steps.length) {
+    document.getElementById('tap-hint').classList.remove('visible'); return false;
+  }
+  steps[revealStep].forEach(el => el.classList.add('visible'));
+  revealStep++;
+  if (revealStep >= steps.length) document.getElementById('tap-hint').classList.remove('visible');
+  return true;
+}
+
+function revealAll() {
+  document.getElementById('slide-track').children[currentSlide]
+    .querySelectorAll('[data-reveal]').forEach(el => el.classList.add('visible'));
+  revealStep = totalSteps;
+  document.getElementById('tap-hint').classList.remove('visible');
+}
+
+function resetCurrentSlide() {
+  document.getElementById('slide-track').children[currentSlide]
+    .querySelectorAll('[data-reveal]').forEach(el => el.classList.remove('visible'));
+  revealStep = 0;
+  document.getElementById('tap-hint').classList.add('visible');
+  setTimeout(() => revealCurrentSlide(), 200);
+}
+
+document.getElementById('presentation').addEventListener('click', (e) => {
+  if (e.target.closest('.nav-bar') || e.target.closest('.tap-hint')) return;
+  if (revealStep >= totalSteps) nextSlide(); else revealNext();
+});
+
+let touchStartX=0, touchStartY=0, isSwiping=false;
+document.getElementById('presentation').addEventListener('touchstart', (e) => {
+  if (e.target.closest('.nav-bar')) return;
+  touchStartX=e.touches[0].clientX; touchStartY=e.touches[0].clientY; isSwiping=false;
+}, {passive:true});
+document.getElementById('presentation').addEventListener('touchmove', (e) => {
+  const dx=Math.abs(e.touches[0].clientX-touchStartX), dy=Math.abs(e.touches[0].clientY-touchStartY);
+  if (dx>30&&dx>dy) isSwiping=true;
+}, {passive:true});
+document.getElementById('presentation').addEventListener('touchend', (e) => {
+  if (!isSwiping || e.target.closest('.nav-bar')) return;
+  const dx=e.changedTouches[0].clientX-touchStartX;
+  if (dx<-50) nextSlide(); else if (dx>50) prevSlide();
+}, {passive:true});
+
+document.addEventListener('keydown', (e) => {
+  if (!currentDeck) return;
+  switch(e.key) {
+    case 'ArrowRight': case ' ': e.preventDefault();
+      if (revealStep>=totalSteps) nextSlide(); else revealNext(); break;
+    case 'ArrowLeft': e.preventDefault(); prevSlide(); break;
+    case 'ArrowDown': e.preventDefault(); revealNext(); break;
+    case 'ArrowUp': e.preventDefault(); resetCurrentSlide(); break;
+    case 'Escape': e.preventDefault(); backToIndex(); break;
+    case 'r': e.preventDefault(); resetCurrentSlide(); break;
+    case 'a': e.preventDefault(); revealAll(); break;
+  }
+});
+
+document.getElementById('btn-index').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (currentDeck) goToSlide(currentDeck.slides.length - 1);
+});
+document.getElementById('btn-reset').addEventListener('click', (e) => {
+  e.stopPropagation();
+  goToSlide(0);
+});
+
+buildIndex();
+</script>
+</body>
+</html>

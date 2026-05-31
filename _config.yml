@@ -1,0 +1,53 @@
+# ============================================================
+# WorkFit site configuration
+# Plain-language note for Rob:
+#   This file holds site-wide settings AND the navigation menu.
+#   To change the menu anywhere on the site, edit the "nav:" list
+#   below — it updates the header and footer on EVERY page at once.
+# ============================================================
+
+title: "Workplace Mental Health"
+tagline: "If your people are struggling, so is your company."
+description: "Proactive, confidential, preventative mental-health support that safeguards your team's productivity, safety, and engagement."
+author: "Rob Maisey"
+
+# Base path. Set to "/workfit-site" for the GitHub project page
+# (https://robmaisey.github.io/workfit-site/). When the sharezen.ca custom domain is
+# attached (served at the root), change this back to "" (empty).
+baseurl: "/workfit-site"
+
+# Contact + booking (used across the site — change once here)
+email: "rob@sharezen.com"
+phone_display: "(604) 904-9400"
+phone_link: "+16049049400"
+booking_url: "https://meetings.hubspot.com/rob465"
+
+# The site's navigation menu (single source of truth)
+nav:
+  - title: "Home"
+    url: "/"
+  - title: "WorkFit"
+    url: "/workfit/"
+  - title: "Pricing"
+    url: "/pricing/"
+  - title: "Tools"
+    url: "/tools/"
+  - title: "About"
+    url: "/about/"
+  - title: "Contact"
+    url: "/contact/"
+
+# Build settings
+markdown: kramdown
+
+# These are NOT published to the live site
+exclude:
+  - knowledge-base/
+  - CLAUDE.md
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - vendor/
+  - .gitignore
+  - serve.ps1
+  - wf-test-harness.html
