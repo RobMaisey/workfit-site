@@ -11,10 +11,10 @@ tagline: "Operational solutions to people problems."
 description: "Proactive, confidential, preventative mental-health support that safeguards your team's productivity, safety, and engagement."
 author: "Rob Maisey"
 
-# Base path. Set to "/workfit-site" for the GitHub project page
-# (https://robmaisey.github.io/workfit-site/). When the sharezen.ca custom domain is
-# attached (served at the root), change this back to "" (empty).
-baseurl: "/workfit-site"
+# Base path. Empty because the site is served at the root of the custom domain
+# sharezen.ca (custom domain set via the CNAME file). If you ever serve it again from
+# the github.io project subfolder, set this back to "/workfit-site".
+baseurl: ""
 
 # Contact + booking (used across the site — change once here)
 email: "rob@sharezen.com"
