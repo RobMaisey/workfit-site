@@ -180,11 +180,16 @@ p  { margin: 0 0 1rem; }
 .frame-title + p { margin-top: 0; }
 
 /* ---------- Pricing ---------- */
-.price-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
-.price-table th, .price-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--line); }
+.price-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #b8c1d3; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.price-table th, .price-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid #c6cedd; }
 .price-table th { background: var(--navy); color: #fff; font-size: .95rem; }
 .price-table td .amt { font-weight: 800; color: var(--navy); }
-.price-table tr:last-child td { border-bottom: 0; }
+.price-table tbody tr:last-child td { border-bottom: 0; }
+/* clearly visible zebra striping + row/column dividers so it reads as a table at a glance */
+.price-table tbody tr:nth-child(even) td { background: #dde4f0; }
+.price-table td + td { border-left: 1px solid #d2dae7; }
+/* Pricing section panels: a clearly framed light box that visibly contains each table */
+.pricing-panel { background: #e9edf4; border-color: #c3cbd9; box-shadow: 0 6px 18px rgba(12, 19, 64, 0.05); }
 .price-note { color: var(--muted); font-size: .95rem; }
 
 /* ---------- Two-column media ---------- */
