@@ -16,6 +16,9 @@ author: "Rob Maisey"
 # the github.io project subfolder, set this back to "/workfit-site".
 baseurl: ""
 
+# Canonical site URL (used for share tags and absolute links)
+url: "https://sharezen.ca"
+
 # Contact + booking (used across the site — change once here)
 email: "rob@sharezen.com"
 phone_display: "(604) 904-9400"
@@ -28,6 +31,8 @@ nav:
     url: "/"
   - title: "WorkFit"
     url: "/workfit/"
+  - title: "Coaching"
+    url: "/coaching/"
   - title: "Pricing"
     url: "/pricing/"
   - title: "Tools"
